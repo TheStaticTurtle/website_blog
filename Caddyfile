@@ -1,19 +1,68 @@
-import "Caddyfile.common"
-import "Caddyfile.prod"
-import "Caddyfile.staging"
+(__website_blog_errors) {
+	handle_errors {
+		@404 {
+			expression {http.error.status_code} == 404
+		}
+		handle @404 {
+			root /* public/
+			rewrite * /404.html
+			file_server
+		}
+	}
+}
 
-#http://blog.staging.thestaticturtle.fr {
-#    import website_blog_staging "public-staging/" "http://staging.thestaticturtle.fr/"
+(website_blog) {
+	encode gzip zstd
+
+	root * {args.0}
+
+	header /sass/* {
+		Cache-Control "public, max-age=3600"
+	}
+	header /fonts/* {
+		Cache-Control "public, max-age=86400"
+	}
+	header /img/* {
+		Cache-Control "public, max-age=2628000"
+	}
+	header /*/images/* {
+		Cache-Control "public, max-age=2628000"
+	}
+
+	file_server {
+		hide 404.html
+	}
+
+	import __website_blog_errors
+}
+
+(website_blog_staging) {
+	@match {
+		not path /robots.txt
+	}
+	basicauth @match {
+		staging $2a$12$HKLw/lQfVgYbbhJQptnhJuvJMtbb6zCZyFjUh/iPZBs0p0G14rV2G #staging
+	}
+
+	handle /*robots.txt {
+		respond "
+User-agent: *
+Disallow: /"
+	}
+
+	root * {args.0}
+
+	file_server {
+		hide 404.html
+	}
+
+	import __website_blog_errors
+}
+
+#http://127.0.0.1:1818 {
+#	import website_blog_staging "public/"
 #}
 
-#http://staging.thestaticturtle.fr {
-#    import website_portfolio_staging "public-staging/"
-#}
-
-#http://blog.thestaticturtle.fr {
-#    import website_blog "public/" "http://thestaticturtle.fr/"
-#}
-
-#http://thestaticturtle.fr {
-#    import website_portfolio "public/"
+#http://127.0.0.1:1919 {
+#	import website_blog "public/"
 #}

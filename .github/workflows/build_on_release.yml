@@ -1,7 +1,7 @@
-name: build_on_push
+name: build_on_release
 on: 
   release:
-    types: [published]
+    types: [released]
 
 jobs:
   build:
@@ -12,6 +12,8 @@ jobs:
       # Get the repo
       - name: "[Prepare] Checkout repository"
         uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       # Get java for plantuml
       - name: "[Prepare] Downlaoding java"
         uses: actions/setup-java@v3
