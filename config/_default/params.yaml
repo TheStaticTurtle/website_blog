@@ -1,0 +1,29 @@
+description: Let's hack
+
+header:
+  links:
+    - url: https://thestaticturtle.fr/
+      name: Portfolio
+    - url: https://blog.thestaticturtle.fr/
+      name: Blog
+
+urls:
+  portfolio: https://thestaticturtle.fr/
+  blog: https://blog.thestaticturtle.fr/
+
+plantuml_picoserver: http://127.0.0.1:8080/render
+
+webMaster: 
+  email: samuel@thestaticturtle.fr
+  name: Samuel
+
+managingEditor: 
+  email: samuel@thestaticturtle.fr
+  name: Samuel
+
+rss:
+  image: img/logo_white.png
+  ttl: 60
+
+pagination:
+  articleCount: 9

@@ -1,0 +1,19 @@
+import "Caddyfile.common"
+import "Caddyfile.prod"
+import "Caddyfile.staging"
+
+#http://blog.staging.thestaticturtle.fr {
+#    import website_blog_staging "public-staging/" "http://staging.thestaticturtle.fr/"
+#}
+
+#http://staging.thestaticturtle.fr {
+#    import website_portfolio_staging "public-staging/"
+#}
+
+#http://blog.thestaticturtle.fr {
+#    import website_blog "public/" "http://thestaticturtle.fr/"
+#}
+
+#http://thestaticturtle.fr {
+#    import website_portfolio "public/"
+#}

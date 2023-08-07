@@ -1,0 +1,9 @@
+cache/
+.cacheDir*/
+resources/_gen/
+public/
+public-staging/
+caddy.exe
+log_*access.log
+.hugo_build.lock
+act.secrets

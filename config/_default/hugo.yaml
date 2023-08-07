@@ -1,0 +1,141 @@
+#########################  Website  ###########################
+baseURL: 'https://blog.thestaticturtle.fr/'
+refLinksNotFoundURL: "/404.html"
+
+log: true
+verbose: true
+timeout: 300000 # Large timeout for the SSR of embeds
+
+enableGitInfo: true
+
+defaultExtension: "html"
+defaultLayout: "post"
+
+##########################  Blog  #############################
+
+theme: turtle
+title: TheStaticTurtle
+copyright: Copyright 2023 - TheStaticTurtle
+
+defaultContentLanguage: en
+languages:
+  en:
+    languageCode: en-GB
+    languageDirection: ltr
+    languageName: English
+    weight: 1
+  fr:
+    languageCode: fr-FR
+    languageDirection: ltr
+    languageName: Français
+    weight: 2
+
+timeZone: "Europe/Paris"
+
+ignoreErrors: 
+  - "error-remote-getjson"
+
+#########################  Render  ###########################
+
+markup:
+  highlight:
+    guessSyntax: false
+    lineNos: true
+    lineNumbersInTable: true
+    noClasses: true
+    style: manni
+    tabWidth: 4
+  tableOfContents:
+    startLevel: 2
+    endLevel: 6
+    ordered: false
+  goldmark:
+    extensions:
+      definitionList: true
+      footnote: true
+      linkify: true
+      linkifyProtocol: https
+      strikethrough: true
+      table: true
+      taskList: true
+      typographer: false
+    parser:
+      attribute:
+        block: true
+        title: true
+      autoHeadingID: true
+      autoHeadingIDType: github
+      wrapStandAloneImageWithinParagraph: true
+    renderer:
+      hardWraps: false
+      xhtml: false
+      unsafe: true
+
+frontmatter:
+  date:
+    - date
+    - publishDate
+    - lastmod
+  publishDate:
+    - publishDate
+    - date
+  expiryDate:
+    - expiryDate
+  lastmod:
+    - :git
+    - lastmod
+    - :fileModTime
+    - date
+    - publishDate
+
+security:
+  enableInlineShortcodes: true
+  http:
+    methods:
+    - (?i)GET
+    - (?i)POST
+    urls:
+    - .*
+
+imaging:
+  exif:
+    disableDate: true
+    disableLatLong: true
+
+#########################  Content  ###########################
+
+taxonomies:
+  author: authors
+  tag: tags
+
+permalinks:
+  posts: '/:slug/'
+
+section:
+  - "RSS"
+  - "SITEMAP"
+
+outputs:
+  home:
+    - "HTML"
+    - "RSS"
+    - "SITEMAP"
+  page:
+    - "HTML"
+  section:
+    - "HTML"
+    - "SITEMAP"
+  taxonomy:
+    - "HTML"
+    - "SITEMAP"
+  term:
+    - "HTML"
+
+rssLimit: -1 
+
+enableRobotsTXT: true
+
+sitemap:
+  changefreq: always
+  filename: sitemap.xml
+  priority: 0.5

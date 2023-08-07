@@ -1,0 +1,12 @@
+description: Let's hack (Staging)
+
+header:
+  links:
+    - url: https://website.staging.thestaticturtle.fr/
+      name: Portfolio
+    - url: https://blog.staging.thestaticturtle.fr/
+      name: Blog
+
+urls:
+  portfolio: https://website.staging.thestaticturtle.fr/
+  blog: https://blog.staging.thestaticturtle.fr/
