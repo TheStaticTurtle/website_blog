@@ -186,7 +186,7 @@ Well, there is not a lot to say here. The ws2812b is a single pin, so I just use
 
 I have some cheap Ethernet dongles. I cut one up and soldered it up to the D+/D- test pads of the PI Zero, that gives me Ethernet connectivity
 
-![PI0 2W Test pads description](images/dl_Raspberry-Pi-Zero-2-W-Test-Pad%20%281%29.png)
+![PI0 2W Test pads description](images/dl_Raspberry-Pi-Zero-2-W-Test-Pad.png)
 
 ### Wiring
 
