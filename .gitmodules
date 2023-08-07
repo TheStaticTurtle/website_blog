@@ -1,0 +1,3 @@
+[submodule "themes/turtle"]
+	path = themes/turtle
+	url = https://git.tugler.fr/samuel.tugler/thestaticturtle_theme
