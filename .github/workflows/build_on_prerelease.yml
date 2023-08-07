@@ -1,4 +1,4 @@
-name: build_on_release
+name: build_on_prerelease
 on: 
   release:
     types: [prereleased]
@@ -51,7 +51,7 @@ jobs:
         uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: -avzr --delete
-          path: ./Caddyfile*
+          path: ./Caddyfile
           remote_path: ${{ secrets.DST_FOLDER_CADDY }} 
           remote_host: ${{ secrets.SSH_HOST }}
           remote_user: ${{ secrets.SSH_USER }}
