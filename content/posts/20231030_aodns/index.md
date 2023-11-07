@@ -1,11 +1,10 @@
-
 ---
 slug: aodns-the-monstrosity-that-now-exists
 title: "AoDNS - The monstrosity that now exists"
 draft: false
 featured: false
 date: 2023-10-30T12:00:00.000Z
-image: "images/cover.jpg"
+image: "images/cover.png"
 tags:
   - audio
   - open source
@@ -22,40 +21,40 @@ AoDNS, is a monumental monstrosity specifically designed to spread chaos among n
 
 The story about how I thought that tunneling audio over DNS and how I actually started working on it is idiotic.
 
-A few weeks ago, I went on an 8h flight to the US for work. 3 Days before I reminded myself that I needed to find a solution for me to be able to listen to music on the plane.
+A few weeks ago, I went on an 8h flight to the US for work 🛫. 3 Days before I reminded myself that I needed to find a solution for me to be able to listen to music on the plane.
 My phone is pretty old, it's an OnePlus 5T 64g version, and, unfortunately, this model does not support SD cards and currently has less than 1g of free space, a complete pain.
 
-I listen to all my music on Spotify and with less than a gigabyte of free space I wasn't about to download my playlist locally.
+I listen to all my music on Spotify and with less than a gigabyte of free space I wasn't about to download my playlist locally 😥.
 
 Just as was about to leave work that day, I remembered that many airplanes (especially international ones) offer an internet service. 
-When you connect to their Wi-Fi it will ask you to either log in or purchase an internet plan and I thought, there's no way they are blocking DNS queries even if you don't pay.
+When you connect to their Wi-Fi it will ask you to either log in or purchase an internet plan and I thought, there's no way they are blocking DNS queries even if you don't pay 🤔.
 
 That's when I thought, maybe, just maybe, if I were to encode audio and put it in DNS records I would be able to stream audio. I then messaged a few friends about this idea, and, as expected, they agreed that it was stupid and then left work and got in my car.
 
 But then because my brain is weird, I couldn't stop thinking about how I could implement it, and at the end of the ride I had a pretty good idea how to implement AoDNS.
 
-But then, my brain, still being peculiar, decided that it would be better to write code for 7h straight to write a proof of concept and go to bed at 4am while having work in the morning instead of going to sleep.
+But then, my brain, still being peculiar, decided that it would be better to write code for 7h straight to write a proof of concept and go to bed at 4am while having work in the morning instead of going to sleep 💤.
 
 ## How does it work
 I'll spare you all the details because between my 7h rush and the actual version, quite a few things changed and improved. 
 
-Most of the code is written in such a way that it would be straightforward to implement new functionalities like, for example, encryption.
+Most of the code is written in such a way that it would be straightforward to implement new functionalities like, for example, encryption 💪.
 
 Here is how I made everything work:
 
 ### Audio & Compression
 I needed a simple way to get audio in and out and, as I wrote this in python I chose the easy way and used pyaudio. However, all the audio collection happens in a class that inherits from a base class, meaning that it would be trivial to add another way of inputting or outputting audio assuming that it supports arbitrary raw pcm frame lengths.
 
-As raw pcm takes quite a bit of space, if I wanted to even have hope of making this work, I needed to compress/decompress it, my default choice (and the one I stuck with) is to use opus. [Opus](https://opus-codec.org/) is an open audio codec design for transmitting audio over the internet. It can use very low bitrates and a wide variety of sample rates & frame sizes. As a bonus, it's super simple to use.
+As raw pcm takes quite a bit of space, if I wanted to even have hope of making this work, I needed to compress/decompress it 📚, my default choice (and the one I stuck with) is to use opus. [Opus](https://opus-codec.org/) is an open audio codec design for transmitting audio over the internet. It can use very low bitrates and a wide variety of sample rates & frame sizes. As a bonus, it's super simple to use.
 
-If the audio is voice only, [Codec2](http://www.rowetel.com/?page_id=452) might also be an adequate option for even lower data usage. A quick calculation result in 163 bytes for 1sec of audio.
+If the audio is voice only, [Codec2](http://www.rowetel.com/?page_id=452) might also be an adequate option for even lower data usage. A quick calculation result in 163 bytes for 1sec of audio 😲.
 
-Most codecs require a specific frame size, opus for example, is calculated like this: `60 * rate // 1000`. This is why it cannot be changed. Instead,  it's queried during initial setup and re-used my the audio streamers.
+Most codecs require a specific frame size, opus for example, is calculated like this: `60 * rate // 1000`. This is why it cannot be changed. Instead, it's queried during initial setup and re-used by the audio streamers.
 
 What will adjust the amount of data collected is the sample rate and channel count. Theses are configurable when starting the example.
 
 My goal for this project was to get 8kHz 1ch working. As you can see in the following table, compressing data to Opus is pretty good, in general, the output is only 6% of the input.
-One thing to note is that, for Opus, the size of the compressed data isn't fixed and varies following the input signal.
+One thing to note is that, for Opus, the size of the compressed data isn't fixed and varies following the input signal 🔊.
 
 | Codec | Activity | Sample rate | Channels | Data size - PCM | Data size - Compressed | Ratio |
 |-------|-------|-------------|----------|-----------------|------------------------|-------|
@@ -71,7 +70,7 @@ One thing to note is that, for Opus, the size of the compressed data isn't fixed
 
 ## Storing the data
 
-As I said, the plan is to store the audio data in TXT queries. To keep everything compatible with the outside world, I choose to store the data as ASCII. There's also some option to consider here:
+As I said, the plan is to store the audio data in TXT queries. To keep everything compatible with the outside world, I choose to store the data as ASCII 👨‍💻. There's also some option to consider here:
 
 | Algorithm | Input size | Output size | Ratio |
 |-----------|------------|-------------|-------|
@@ -85,9 +84,9 @@ To maximize the amount of data I could store in one record, I decided to use bas
 
 One issue I stumbled on early is that TXT strings are limited to a max of 255 characters. Which, for me, roughly equates to 200 bytes of data after the base91 step.
 
-The DNS server can easily bypass this limitation by simply answering multiple TXT strings. My local responder (Windows server 2020) could handle around 3 KB of data in one record before it simply stopped responding.
+The DNS server can easily bypass this limitation by simply answering multiple TXT strings 😏. My local responder (Windows server 2022) could handle around 3 KB of data in one record before it simply stopped responding.
 
-One issue that arises when sending multiple strings is that the first answer you get from the responder might be ordered correctly, but, at least with Windows server, the second one won't be and instead randomizes the order. 
+One issue that arises when sending multiple strings is that the first answer you get from the responder might be ordered correctly, but, at least with Windows server, the second one won't be and instead will be in a randomized< order 😭. 
 
 To solve this, I added an incrementing prefix to each string. The prefix is separated from the actual data by using `'''` which is one ASCII char that is not used in the base91 table.
 
@@ -117,7 +116,7 @@ seq_49680.music.example.com. 21s IN TXT  "000'''8U{O#xvTKUK{a)`$*k0t`OwPP$B+(Ogk
 seq_49680.music.example.com. 21s IN TXT  "002'''8U4}l=%kj@6Ph3j9aZJO*qQ,2R*m2z[Kp.;h:%m6);/CR)8J4l}Im9IU5)H+KGLT4T`,(Jt}JwBmEqxMw7[pCUYPO,8>T^9jl.[:w6)EG"
 ```
 
-The above example is 19 frames of 16kHz 1ch 16bit audio, which stores just a bit more than 1sec of audio. Perfect.
+The above example is 19 frames of 16kHz 1ch 16bit audio, which stores just a bit more than 1sec of audio 🎶. Perfect.
 
 ## Generating the records
 
@@ -127,15 +126,15 @@ This is why there is a special subdomain called `sequence` that will respond wit
 
 However, due to the max length of 255 imposed by TXT strings, the string is compressed with zlib and then base91 encoded. 
 
-The issue is that even with this protection, there is a possibility that if the server is left running for long enought, the sequence number would grow so high that it will still overflow and take too much space. This will cause the server to crash.
+The issue is that even with this protection, there is a possibility that if the server is left running for long enought, the sequence number would grow so high that it will still overflow and take too much space. This will cause the server to crash 😕.
 
 As the sequence numbers are linear on the server side, this could be improved by sending the first sequence number available and number of available records.
 
 ## TTL
 
-TTL is a big issue, especially if the server is behind resolvers which might not respect low TTLs.
+TTL is a big issue, especially if the server is behind resolvers which might not respect low TTLs 🕖.
 
-The TTL of the `sequence` record is fixed to 10 seconds. This is done to ensure that it will be somewhat up-to-date before the client will ever run out of sequences. While I have not tested this extensively, 10sec should be high enought to work somewhat decently on the public internet.
+The TTL of the `sequence` record is fixed to 10 seconds. This is done to ensure that it will be somewhat up-to-date before the client will ever run out of sequences. While I have not tested this extensively, 10sec should be high enought to work somewhat decently on the public internet 😅.
 
 On the other hand, the TTL of sequence subdomains is dynamically calculated to be around 80% of the total length of audio data stored in all the records. The formula looks like this: 
 
@@ -150,18 +149,18 @@ Which at 16kHz, 1 channel and a queue of 75 sequence domains in the generator gi
 
 Here is a demo of AoDNS running a 16kHz 1 channel:
 
-{{< og "https://www.youtube.com/watch?v=zBXoKCYOZjo" >}}
+{{< og "https://www.youtube.com/watch?v=OxLp7QJcwbs" >}} 
 
 ## Conclusion
 
-While this project was done purely as a tinkering experiment to test the feasibility of using DNS as a non-standard mechanism to move data around, I think it turned out pretty well.
+While this project was done purely as a tinkering experiment to test the feasibility of using DNS as a non-standard mechanism to move data around, I think it turned out pretty well 😃.
 
-One thing that I didn't discus yet and what a friend mentioned to me, is the potential for free speech and public communication. If the server chain is properly implemented and extended with encryption & DNSSEC & DoTLS or DoHTTPS, I think it would be pretty hard to actually censor / modify the audio feed.  If the validity of the responses is checked correctly, the worst possible outcome would be a DoS. 
+One thing that I didn't discus yet and what a friend mentioned to me, is the potential for free speech and public communication 👨‍👩‍👧‍👦. If the server chain is properly implemented and extended with encryption & DNSSEC & DoTLS or DoHTTPS, I think it would be pretty difficult to actually censor / modify the audio feed.  If the validity of the responses is checked correctly, the worst possible outcome would be a DoS 🔇. 
 
-I think that it would be easier to find a DNS server that resolves to the full internet (which could be forwarded to AoDNS the server)  rather than trying to establish TCP sessions on filtered networks. Especially since the traffic will look like normal DNS queries.
+I think that it would be easier to find a DNS server that resolves to the full internet (which could be forwarded to AoDNS the server)  rather than trying to establish TCP sessions on filtered networks 🌐. Especially since the traffic will look like normal DNS queries.
 
 Since setting up DNS resolvers is mostly effortless, you could even set up many to act as load balancers / region separator.
 
 This is of course pretty far-fetch and far from reality. But, overall pretty happy with this project :smile:.
 
-Note that when I finished the code I was less than 12h from my flight and still didn't have a solution :sweat_smile:. (Ended up flashing the latest lineage on my old phone and installed Spotify 🤷‍♂️)
+Note that when I finished the code I was less than 12h from my flight and still didn't have a solution 😅. (Ended up flashing the latest lineage on my old phone and installed Spotify 🤷‍♂️)
