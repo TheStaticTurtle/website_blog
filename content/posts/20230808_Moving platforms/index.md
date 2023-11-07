@@ -11,7 +11,7 @@ authors:
   - samuel
 ---
 
-For a while now, I used ghost for my blog platform. A while ago, I decided that enought was enought I was going to migrate to another platform.
+For a while now, I used ghost for my blog platform. A while ago, I decided that enough was enought I was going to migrate to another platform.
 Hugo was selected and lots of development occured.
 
 <!--more-->

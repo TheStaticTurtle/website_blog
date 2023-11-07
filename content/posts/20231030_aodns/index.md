@@ -164,3 +164,5 @@ Since setting up DNS resolvers is mostly effortless, you could even set up many 
 This is of course pretty far-fetch and far from reality. But, overall pretty happy with this project :smile:.
 
 Note that when I finished the code I was less than 12h from my flight and still didn't have a solution 😅. (Ended up flashing the latest lineage on my old phone and installed Spotify 🤷‍♂️)
+
+{{< og "https://github.com/TheStaticTurtle/AoDNS" >}} 
