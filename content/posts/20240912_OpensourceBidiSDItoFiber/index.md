@@ -80,7 +80,7 @@ When I saw [@twi_kingyo](https://x.com/twi_kingyo) post about SDI I very quickly
 
 I very quickly designed a PCB and sent it to production:
 
-![LMH0397 Breakout prototype](./images/chrome_2024_09_16_15-56-55_3rq8lhTxRE.png)
+![LMH0397 Breakout prototype](images/chrome_2024_09_16_15-56-55_3rq8lhTxRE.png)
 
 And it worked, well partially worked.
 
@@ -98,7 +98,7 @@ system designers the flexibility to use a single BNC
 either as an input or output port to simplify HD-SDI
 video hardware designs.
 
-![LMH0397 Simplified Block Diagram](./images/LMH0397_diagram.png)
+![LMH0397 Simplified Block Diagram](images/LMH0397_diagram.png)
 
 If I read things more carfully I would have done things differently, but it worked and that meant I had a proof of concept.
 
@@ -117,13 +117,13 @@ While these chips are marketed as HD-SDI Transmitter/Receiver, they are capable 
 The schematic (at least the intersting parts) is based on the typical application circuit of both schematic. 
 Compared to the LMH0397, the EQCO30T5 and EQCO30R5 are super simple to connect.
 
-![Version 2 prototype EQCO30T5 schematic](./images/chrome_2024_09_16_16-20-12_7CZVtUYs49.png)
-![Version 2 prototype EQCO30R5 schematic](./images/chrome_2024_09_16_16-20-36_rW5pAelcwh.png)
+![Version 2 prototype EQCO30T5 schematic](images/chrome_2024_09_16_16-20-12_7CZVtUYs49.png)
+![Version 2 prototype EQCO30R5 schematic](images/chrome_2024_09_16_16-20-36_rW5pAelcwh.png)
 
 ### PCB
 This is the first prototype with the appropriate dimentions, my plan was to fit everything into a 1U case (fiber splitter, converter modules, ...). This means it has to be at most 45mm tall but decieded that my target would be 35mm. This would leave enought space for the chassis, mounting & cables.
 
-![Version 2 prototype render](./images/chrome_2024_09_16_16-16-49_d7eqsZauTm.png)
+![Version 2 prototype render](images/chrome_2024_09_16_16-16-49_d7eqsZauTm.png)
 
 ### First test
 Once I received the PCBs I imediatly soldered four chips on two separate boards. Powered them up and amazingly there wasn't any magic smoke! 
