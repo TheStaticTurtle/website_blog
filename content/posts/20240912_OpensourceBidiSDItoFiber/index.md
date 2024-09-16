@@ -52,13 +52,13 @@ This setup would be like the Swiss Army knife of video transport. I'm looking at
 
 However, the cost of fiber converters can be a hurdle, almost as much as IP converters (NDI/RTSP). For example, Blackmagic offers a 12G SDI to fiber converter priced at around 155 EUR: 
 
-{{< og https://www.blackmagicdesign.com/fr/products/miniconverters/techspecs/W-CONM-29 >}}
+{{< og "https://www.blackmagicdesign.com/fr/products/miniconverters/techspecs/W-CONM-29" >}}
 
 While this is a reliable and professional option, the price tag is a bit hefty for a project that’s meant to be low-cost and accessible. I don't really need 8k video, 1080p60 is more than fine for IMAG so 3G sdi will do.
 
 Unfortunatly I couldn't find a cheaper alternative even for lower data rates. I was on the lookout for more budget-friendly alternatives, and purely by chance, I stumbled upon this post by twi_kingyo.
 
-{{< og https://x.com/twi_kingyo/status/1446102240633049094 >}}
+{{< og "https://x.com/twi_kingyo/status/1446102240633049094" >}}
 
 The post was a game-changer for me. It showed a very crude, DIY approach to 3G-SDI to fiber conversion that was both affordable and in line with what I had been envisioning. 
 
