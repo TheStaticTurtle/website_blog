@@ -21,40 +21,41 @@ Building a very affordable and opensource bidirectional 3G-SDI to Fiber converte
 
 **WARNING: This is a stupidly long article, it details the concept, design, and construction phases thoroughly, you'll need probably more than 45 min to really read it**
 
-Every once in a while, I have the pleasure of working with my local choir. Every few years they perform on stage featuring around 3 hours of music. In the past, my involvement was mostly behind the scenes, helping out wherever I could. However, last year, I decided to take on a more ambitious role and conduct an experiment that would elevate the entire performance.
+Every once in a while, I have the pleasure of working with my local choir. Every few years they perform on stage featuring around 3 hours of music 🎶. In the past, my involvement was mostly behind the scenes👻, helping out wherever I could. However, last year, I decided to take on a more ambitious role and conduct an experiment that would elevate the entire performance.
 
-I took every piece of video equipment I could get my hands on and set out to not only record the shows but also provide live Image Magnification (IMAG) of the band. This was a significant step up from previous years, where recording had been outsourced with mixed results. The idea was to bring a new level of engagement for both the audience and the performers, while also creating a high-quality record of the event.
+I took every piece of video equipment I could get my hands on and set out to not only record the shows but also provide live Image Magnification (IMAG) of the band 🎥. This would be a significant step up from previous years, where recording had been outsourced with mixed results. The idea was to bring a new level of engagement for both the audience and the performers, while also creating a high-quality record of the event 🎞.
 
-The experiment turned out to be a resounding success. The live IMAG was enthusiastically received by both the singers and the audience, adding a dynamic visual element that enhanced the overall experience. It allowed those seated further back to see the intricate work of the musicians. As for the recording, the quality far exceeded my expectations, surpassing in many ways what had been achieved in previous years.
+The rest of the tech staff later admited that they were, at first, skeptical of this 🤨. But it turned out to be a resounding success. The live IMAG was enthusiastically received by both the singers and the audience, adding a dynamic visual element that enhanced the overall experience 🥳. It allowed those seated further back to see the work of the musicians 🥁. As for the recording, the quality far exceeded my expectations, surpassing in many ways what had been achieved in previous years 🤩.
+
+{{<todo>}} Photo IMAG {{</todo>}}
 
 ## Why
 
-Last year's show was pretty awesome, but I always want to improve things. Something that's been bugging me in my video setup is, that, it was kind of a mess. I mean, we had HDMI cables here, SDI there, some RTSP streams, and even NDI feeds. Talk about a tech salad!
+Last year's show was pretty awesome, but I always want to improve things. Something that's been bugging me in my video setup is, that, it was kind of a mess. I mean, I had HDMI cables here, SDI there, some RTSP streams, and even NDI feeds. Talk about a tech salad 🥗!
 
-Don't get me wrong, it worked... mostly. But I had to run custom scripts before the show and more than once the IMAG showed the blank elgato logo or a freezed frame. So I kept thinking, "There's gotta be a better way to do this." 
+Don't get me wrong, it worked... mostly. But I had to run custom scripts 📜 before the show and more than once the IMAG showed the blank elgato logo or a freezed frame ⬛. So I kept thinking, "There's gotta be a better way to do this." 
 
-The issue always had been the budget, I was at the time an apprentice in a different field with no contacts or knowledge in the AV production world. Video isn't exactly cheap, and it evolves very quickly, the quality always need to increase.
+The issue always had been the budget 💰, I was at the time an apprentice in a different field with no contacts or knowledge in the AV production world. Video isn't exactly cheapest part of a live production, and the technology evolves very quickly, the quality always need to increase.
 
-So for next show, I want to do one thing: simplify the heck out of my video system, specifically transport.
+So for next show, I want to do one thing: simplify the heck out of my video system, specifically transport 🔌.
 
 I started digging into different options and, there are a few contenders:
 
-  - **NDI:** This system is pretty slick. But there is a catch, you either need fancy cameras that speak NDI right out of the box or you gotta shell out for converters that will set me back at least 300 euros a pop. Ouch!
+  - **NDI:** This system is pretty slick. But there is a catch, you either need fancy cameras that speak NDI right out of the box or you gotta shell out for converters that will set me back at least 300 euros a pop 🙁.
   - **RTSP:** Now, this one's tempting. It's really good, but it's got a bit of a lag issue. And, you still need converter boxes. They're a bit cheaper though.
-  - **HDMI:** It's pretty reliable but has severe length issue unless you use active cables.
+  - **HDMI:** It's pretty reliable but has severe length issue 🔭 unless you use active cables.
   - **SDI:** Now we're talking! This is like the goldilocks of video options for me. It's not dirt cheap, but compared to the others, it's a steal. You can find affordable converters to and from HDMI, and it's used all over the place in pro setups.
 
-But wait, it gets better! SDI's got a neat trick up its sleeve - you can easilly convert it to fiber. 
+But wait, it gets better! SDI's got a neat trick up its sleeve - you can easilly convert it to fiber ⚪. 
 
-My idea is the following: an MPO-12 breakout (fancy connector with 12 fibers) and an armored MPO-12 cable. Throw in a DIY stage box, and boom! We're in business.
+My idea is the following: an MPO-12 breakout (fancy connector with 12 fibers) and an armored MPO-12 cable. Throw in a DIY stage box, and boom! We're in business, one cable, multiple cameras.
+This setup would be like the Swiss Army knife 🔪 of video transport. I'm looking at 2 fibers for 10Gb ethernet 🌐, at least 8 for video feeds 📹, and I've even got 2 spares that I'll use for audio (maybe). 
 
-This setup would be like the Swiss Army knife of video transport. I'm looking at 2 fibers for 10Gb ethernet, at least 8 for video feeds, and I've even got 2 spares that I'll use for audio (maybe). 
-
-However, the cost of fiber converters can be a hurdle, almost as much as IP converters (NDI/RTSP). For example, Blackmagic offers a 12G SDI to fiber converter priced at around 155 EUR: 
+However, the cost of fiber converters can be a hurdle, almost as much as IP converters (NDI/RTSP). For example, Blackmagic offers a 12G SDI to fiber converter priced at around 155 EUR 💸: 
 
 {{< og "https://www.blackmagicdesign.com/fr/products/miniconverters/techspecs/W-CONM-29" >}}
 
-While this is a reliable and professional option, the price tag is a bit hefty for a project that’s meant to be low-cost and accessible. I don't really need 8k video, 1080p60 is more than fine for IMAG so 3G sdi will do.
+While this is a reliable and professional option, the price tag is a bit hefty for a project that's meant to be low-cost and accessible. I don't really need 8k video, 1080p60 is more than fine for IMAG so 3G sdi will do.
 
 Unfortunatly I couldn't find a cheaper alternative even for lower data rates. I was on the lookout for more budget-friendly alternatives, and purely by chance, I stumbled upon this post by twi_kingyo.
 
@@ -62,33 +63,59 @@ Unfortunatly I couldn't find a cheaper alternative even for lower data rates. I 
 
 The post was a game-changer for me. It showed a very crude, DIY approach to 3G-SDI to fiber conversion that was both affordable and in line with what I had been envisioning. 
 
-As I read a bit more I immediately was like, `wait a minute, this is exactly what I want to do`
+As I read a bit more I immediately though that this is exactly what I want to do
 
 ## Research
-
 I then spent a good amount of time researching SDI, fiber, SFPs, ....
 
-It turns out that the cheap 10Gb SFP+ transcivers I got for 8eur are relatively "passive" they take a 100Ohm differential pair for data in and data out + a few control and status pins.
+### SFP / SFP+
+It turns out that the cheap 10Gb SFP+ transcivers I got for 8eur are relatively "passive" they take a 100Ohm differential pair for data in and data out + a few control and status pins and spits out / take in light.
 
-As for SDI, it'a simple 75Ohm terminated singlened data stream.
+![Block diagram of an SFP/SFP+](images/chrome_2024_09_17_16-56-28_RRY2TFfSrr.png)
 
-All you really need is a cable equilizer for RX and a cable driver for TX. 
+### SDI
+As for SDI, it's also relatively simple. 
+
+> Serial digital interface (SDI) is a family of digital video interfaces first standardized by SMPTE.
+
+> The various serial digital interface standards all use (one or more) coaxial cables with BNC connectors, with a nominal impedance of 75 ohms
+
+> Data is encoded in NRZI format, and a linear feedback shift register is used to scramble the data to reduce the likelihood that long strings of zeroes or ones will be present on the interface. The interface is self-synchronizing and self-clocking. 
+
+It supports a ton of formats 📼📀💾 described in the following table:
+
+|                    Standard                             |       Name       |  Bitrates (Mbit/s)  | Example video formats |
+|---------------------------------------------------------|------------------|---------------------|-----------------------|
+| [SMPTE 259M](https://en.wikipedia.org/wiki/SMPTE_259M)  | SD-SDI           | 270, 360, 143, 177  | 480i, 576i            |
+| [SMPTE 344M](https://en.wikipedia.org/wiki/SMPTE_344M)  | ED-SDI           | 540                 | 480p, 576p            |
+| [SMPTE 292M](https://en.wikipedia.org/wiki/SMPTE_292M)  | HD-SDI           | 1485 and 1485/1.001 | 720p, 1080i           |
+| [SMPTE 372M](https://en.wikipedia.org/wiki/SMPTE_372M)  | Dual Link HD-SDI | 2970 and 2970/1.001 | 1080p60               |
+| [SMPTE 424M](https://en.wikipedia.org/wiki/SMPTE_424M)  | 3G-SDI           | 2970 and 2970/1.001 | 1080p60               |
+| SMPTE ST 2081                                           | 6G-SDI           | 6000                | 1080p120, 2160p30     |
+| SMPTE ST 2082                                           | 12G-SDI          | 12000               | 2160p60               |
+| SMPTE ST 2083                                           | 24G-SDI          | 24000               | 2160p120, 4320p30     |
 
 ## First prototype
 
-When I saw [@twi_kingyo](https://x.com/twi_kingyo) post about SDI I very quickly found the [LMH0397](https://www.ti.com/product/LMH0397) which looked prefect at first glance. The description said `3G SDI bidirectional I/O with integrated reclocker`
+It would seems that all that I really need is a cable equalizer for RX and a cable driver for TX to convert the 75Ohm single-ended and 100Ohm differential pairs 🤷‍♂️.
 
-I very quickly designed a PCB and sent it to production:
+After I saw [@twi_kingyo](https://x.com/twi_kingyo) post, I very quickly found the [LMH0397](https://www.ti.com/product/LMH0397) which looked prefect at first glance. The description said `3G SDI bidirectional I/O with integrated reclocker`
+
+I got very excited 🤪 and **very** quickly designed a PCB and sent it to production 🏭.
 
 ![LMH0397 Breakout prototype](images/chrome_2024_09_16_15-56-55_3rq8lhTxRE.png)
 
+I usually spend at least a week 📅 for a prototype, however, I treated this more as a breakout board than a proper prototype, which means I skimmed 🏄‍♀️ throught a lot things.
+
 And it worked, well partially worked.
+
+{{<todo>}} Video DEMO of the first prototype + my mistake {{</todo>}}
 
 ### Stupid mistake
 
-In my haste I didn't fully read the datasheet. While it is bi-directional in the sense that I can do both directions. It cannot however, do it a the same time.
+In my haste I didn't fully read the datasheet 🙄. While it is bi-directional in the sense that I can do both directions. It cannot however, do it a the same time.
 
-Something that I would have seen if I read the f-ing datasheet:
+Something that I would have seen if I read the f-ing 🤬 datasheet:
 
 > The LMH0397 is a 3G-SDI 75-Ω bidirectional I/O with
 integrated reclocker. This device can be configured
@@ -103,15 +130,15 @@ video hardware designs.
 If I read things more carfully I would have done things differently, but it worked and that meant I had a proof of concept.
 
 ## Second prototype
-The second prototype was very cost minded my target was arround 25eur per converter
+The second prototype was very cost minded 💰 my target was arround 25eur per converter
 
-The LMH0397 is a great chip but it is 18.5eur per unit in low volumes and has redundant features not needed for a simple media converter.
+The LMH0397 is a great chip but it is 18.5eur per unit 💸 in low volumes and has redundant features not needed for a simple media converter.
 
-I spent a while searching for alternative. First thing I did is to take the reclocker out of the equation. I now needed a simple cable equalizer and a cable driver. There are a few options, for instance Texas instrument or Semtech have some interesting chips.
+I spent a while searching for alternative. First thing I did is to take the reclocker out of the equation which, while usefull, isn't needed in most cases especially at lower data rates. I now needed a simple cable equalizer and a cable driver. There are a few options, for instance [Texas Instrument](https://www.ti.com/interface/serial-digital-interface/overview.html) or [Semtech](https://www.semtech.com/products/broadcast-video) have some interesting chips.
 
 But the ones I choose are from microchip, the [EQCO30T5](https://www.microchip.com/en-us/product/eqco30t5) and [EQCO30R5](https://www.microchip.com/en-us/product/eqco30r5).
 
-While these chips are marketed as HD-SDI Transmitter/Receiver, they are capable of up to 3Gbps Video. They also seem to be able to be used for a data backchannel and power over coax. This won't be of any use for me tho.
+While these chips are marketed as HD-SDI Transmitter/Receiver, they are capable of 3G-SDI Video. Interstingly 🤔, they also seem to be able to be used for a data backchannel and power over coax, but this won't be of any use for me tho.
 
 ### Schematic
 The schematic (at least the intersting parts) is based on the typical application circuit of both schematic. 
@@ -132,7 +159,7 @@ I then screwed in SMA to BNC adapters and connected my HDMI-SDI & SDI-HDMI conve
 
 And it worked! I got a picture on my monitor!
 
-**DEMO** **DEMO** **DEMO** **DEMO** 
+{{<todo>}} Video DEMO of the second prototype {{</todo>}}
 
 ### Issues for longer distances
 
@@ -141,7 +168,7 @@ To start things out, I used a 15m cable and it still somewhat worked !?
 
 I used jellyfin to play videos on the output and misteriously, while I had the window in the foreground everything was fine, no issues at all! But, as soon as I clicked else-where, the link crashed and would not come back up.
 
-**DEMO** **DEMO** **DEMO** **DEMO** 
+{{<todo>}} Video DEMO of the issues that appears with a long cable {{</todo>}}
 
 While it did try to sync, using my 50m fiber didn't show any picture in any condition!
 
