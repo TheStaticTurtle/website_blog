@@ -66,21 +66,58 @@ The post was a game-changer for me. It showed a very crude, DIY approach to 3G-S
 As I read a bit more I immediately though that this is exactly what I want to do
 
 ## Research
-I then spent a good amount of time researching SDI, fiber, SFPs, ....
+I started this journey by researching a ton on the two major components systems of this project, namely SDI and SFPs.
 
 ### SFP / SFP+
-It turns out that the cheap 10Gb SFP+ transcivers I got for 8eur are relatively "passive" they take a 100Ohm differential pair for data in and data out + a few control and status pins and spits out / take in light.
+
+SFP (Small Form-factor Pluggable) and SFP+ (enhanced SFP) modules are compact, hot-swappable transceivers used in networking to transmit and receive data over optical or copper connections. They are widely used in switches, routers, and other networking equipment.
+
+Their key features include
+  - Form Factor: Small size allows for high port density.
+  - Hot-swappable: Can be replaced without turning off the device.
+  - Versatility: Supports various protocols (1GbE / 10GbE / Video).
+
+See the this wikipedia page about them for more information:
+{{< og "https://en.wikipedia.org/wiki/Small_Form-factor_Pluggable" >}}
+The SFPs modules that I have are cheap 10Gb SFP+ transcivers that I got for arround 8eur on [eBay](https://www.ebay.fr/itm/115579010576) (the [DELL FTLX8571D3BCL-FC](https://www.dell.com/en-us/shop/c2g-finisar-ftlx8571d3bcl-compatible-10gbase-sr-mmf-sfp-transceiver-module-taa-sfp-transceiver-module-10-gigabi/apd/a8568835/pc-accessories)).
+
+SFP modules take very few signals:
+
+| Description                            | Pin   | Pin No | Pin No | Pin         | Description                                                   |
+|----------------------------------------|------:|:------:|:------:|:------------|---------------------------------------------------------------|
+| Transmitter ground                     | VeeT  | 20     | 1      | VeeT        | Transmitter ground                                            |
+| Transmit neg differential pair         | TD-   | 19     | 2      | TxFault     | Transmitter fault indication                                  |
+| Transmit pos differential pair         | TD+   | 18     | 3      | TxDisable   | Optical output disabled when high                             |
+| Transmitter ground                     | VeeT  | 17     | 4      | MOD-DEF(2)  | 2-wire serial interface data line                             |
+| Transmitter power (3.3 V, max. 300 mA) | VccT  | 16     | 5      | MOD-DEF(1)  | 2-wire serial interface clock                                 |
+| Receiver power (3.3 V, max. 300 mA)    | VccR  | 15     | 6      | MOD-DEF(2)  | Module absent, GND indicates module presence |
+| Receiver ground                        | VeeR  | 14     | 7      | RS0         | Rate select 0                                                 |
+| Receive pos differential pair          | RD+   | 13     | 8      | LOS         | Receiver loss of signal indication                            |
+| Receive neg differential pair          | RD-   | 12     | 9      | RS1         | Rate select 1                                                 |
+| Receiver ground                        | VeeR  | 11     | 10     | VeeR        | RX Ground                                                     |
+
+Most of them don't need to be dynamically adjusted and some can be ignored outright. As long as the module gets power, has the correct rate and has it's transmitter enabled it's fine.
+
+What's even better is that basic modules (short distance, multimode ones) are relatively "passive". Some include a reclocker that resyncs the data but not always.
 
 ![Block diagram of an SFP/SFP+](images/chrome_2024_09_17_16-56-28_RRY2TFfSrr.png)
 
+This means that, as long as it's a differential signal, you can feed pretty much anything to the module
+
+{{< og "https://www.reddit.com/r/techsupportmacgyver/comments/hwptl0/uart_over_sfp_fiber_optic_finally_working/" >}}
+
+{{< og "https://hackaday.com/2021/02/13/experiment-with-sfp-modules-with-this-handy-breakout/" >}}
+
+And, as long as they support it, they can be relatively easily managed using the [DDM (Digital Diagnostics Monitoring)](https://cdn.hackaday.io/files/21599924091616/AN_2030_DDMI_for_SFP_Rev_E2.pdf) protocol
+
+{{< og "https://hackaday.io/project/21599-optical-power-meter-with-sfp-and-ddm-protocol" >}}
+
+{{< og "https://github.com/feuerrot/sfp-i2c" >}}
+
+
 ### SDI
-As for SDI, it's also relatively simple. 
 
-> Serial digital interface (SDI) is a family of digital video interfaces first standardized by SMPTE.
-
-> The various serial digital interface standards all use (one or more) coaxial cables with BNC connectors, with a nominal impedance of 75 ohms
-
-> Data is encoded in NRZI format, and a linear feedback shift register is used to scramble the data to reduce the likelihood that long strings of zeroes or ones will be present on the interface. The interface is self-synchronizing and self-clocking. 
+SDI (Serial Digital Interface) was first standardized by SMPTE, it's a widely used family standard for transmitting uncompressed digital video signals over coaxial or fiber optic cables. It's primarily utilized in professional broadcasting and video production, SDI enables high-quality video transmission with low latency, making it ideal for live broadcasts and studio environments.
 
 It supports a ton of formats 📼📀💾 described in the following table:
 
@@ -95,11 +132,27 @@ It supports a ton of formats 📼📀💾 described in the following table:
 | SMPTE ST 2082                                           | 12G-SDI          | 12000               | 2160p60               |
 | SMPTE ST 2083                                           | 24G-SDI          | 24000               | 2160p120, 4320p30     |
 
+SDI uses uncompressed digital video and audio formats. The data is typically encoded in a YCbCr color space, with 10-bit or higher color depth, ensuring a high dynamic range and color fidelity. Alongside with video, an SDI signal may contain up to 16, 48 kHz, 24-bit audio channels.
+
+Data is encoded in NRZI format, and a linear feedback shift register is used to scramble the data to reduce the likelihood that long strings of zeroes or ones will be present on the interface. Thanks to the NRZI encoding the interface is self-synchronizing and self-clocking. SDI uses form of forward error correction to maintain signal integrity, which is especially important for long-distance transmissions
+
+On the physical layer side, SDI transmits signals using coaxial cables with BNC connectors, designed for minimal signal loss and interference. It can also use fiber optic cables for longer distances and increased bandwidth.
+
+See the wikipedia page for more details:
+
+{{< og "https://en.wikipedia.org/wiki/Serial_digital_interface" >}}
+
+SDI is way more complicated to handle and most often requires an FPGA, see this DIY pattern genertor for example:
+
+{{< og "https://hackaday.com/2023/02/06/arduino-does-sdi-video-with-fpga-help/" >}}
+
+Thankfully, for this project I don't actually need to decode/encode anything myself.
+
 ## First prototype
 
-It would seems that all that I really need is a cable equalizer for RX and a cable driver for TX to convert the 75Ohm single-ended and 100Ohm differential pairs 🤷‍♂️.
+After this extensive research, It would seems that all that I really need is a cable equalizer for RX and a cable driver for TX to convert the 75Ohm single-ended and 100Ohm differential pairs 🤷‍♂️.
 
-After I saw [@twi_kingyo](https://x.com/twi_kingyo) post, I very quickly found the [LMH0397](https://www.ti.com/product/LMH0397) which looked prefect at first glance. The description said `3G SDI bidirectional I/O with integrated reclocker`
+When I saw [@twi_kingyo](https://x.com/twi_kingyo) post, I very quickly found the [LMH0397](https://www.ti.com/product/LMH0397) which looked prefect at first glance. The description said `3G SDI bidirectional I/O with integrated reclocker`.
 
 I got very excited 🤪 and **very** quickly designed a PCB and sent it to production 🏭.
 
