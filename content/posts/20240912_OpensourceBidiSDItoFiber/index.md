@@ -33,7 +33,7 @@ The rest of the tech staff later admited that they were, at first, skeptical of 
 
 Last year's show was pretty awesome, but I always want to improve things. Something that's been bugging me in my video setup is, that, it was kind of a mess. I mean, I had HDMI cables here, SDI there, some RTSP streams, and even NDI feeds. Talk about a tech salad 🥗!
 
-Don't get me wrong, it worked... mostly. But I had to run custom scripts 📜 before the show and more than once the IMAG showed the blank elgato logo or a freezed frame ⬛. So I kept thinking, "There's gotta be a better way to do this." 
+Don't get me wrong, it worked... mostly. But I had to run custom scripts before the show 📜 and more than once the IMAG showed the blank elgato logo or a freezed frame ⬛. So I kept thinking, "There's gotta be a better way to do this." 
 
 The issue always had been the budget 💰, I was at the time an apprentice in a different field with no contacts or knowledge in the AV production world. Video isn't exactly cheapest part of a live production, and the technology evolves very quickly, the quality always need to increase.
 
@@ -88,7 +88,7 @@ SFP modules take very few signals:
 | Transmitter ground                     | VeeT  | 20     | 1      | VeeT        | Transmitter ground                                            |
 | Transmit neg differential pair         | TD-   | 19     | 2      | TxFault     | Transmitter fault indication                                  |
 | Transmit pos differential pair         | TD+   | 18     | 3      | TxDisable   | Optical output disabled when high                             |
-| Transmitter ground                     | VeeT  | 17     | 4      | MOD-DEF(2)  | 2-wire serial interface data line                             |
+| Transmitter ground                     | VeeT  | 17     | 4      | MOD-DEF(0)  | 2-wire serial interface data line                             |
 | Transmitter power (3.3 V, max. 300 mA) | VccT  | 16     | 5      | MOD-DEF(1)  | 2-wire serial interface clock                                 |
 | Receiver power (3.3 V, max. 300 mA)    | VccR  | 15     | 6      | MOD-DEF(2)  | Module absent, GND indicates module presence |
 | Receiver ground                        | VeeR  | 14     | 7      | RS0         | Rate select 0                                                 |
@@ -96,7 +96,7 @@ SFP modules take very few signals:
 | Receive neg differential pair          | RD-   | 12     | 9      | RS1         | Rate select 1                                                 |
 | Receiver ground                        | VeeR  | 11     | 10     | VeeR        | RX Ground                                                     |
 
-Most of them don't need to be dynamically adjusted and some can be ignored outright. As long as the module gets power, has the correct rate and has it's transmitter enabled it's fine.
+Most of them don't need to be dynamically adjusted and some can be ignored outright. As long as the module gets power, has the correct rate and has it's transmitter is enabled it's fine.
 
 What's even better is that basic modules (short distance, multimode ones) are relatively "passive". Some include a reclocker that resyncs the data but not always.
 
@@ -117,7 +117,7 @@ And, as long as they support it, they can be relatively easily managed using the
 
 ### SDI
 
-SDI (Serial Digital Interface) was first standardized by SMPTE, it's a widely used family standard for transmitting uncompressed digital video signals over coaxial or fiber optic cables. It's primarily utilized in professional broadcasting and video production, SDI enables high-quality video transmission with low latency, making it ideal for live broadcasts and studio environments.
+SDI (Serial Digital Interface) is a family of digital video interfaces first standardized by SMPTE, it's a widely used family standard for transmitting uncompressed digital video signals over coaxial or fiber optic cables. It's primarily utilized in professional broadcasting and video production, SDI enables high-quality video transmission with low latency, making it ideal for live broadcasts and studio environments.
 
 It supports a ton of formats 📼📀💾 described in the following table:
 
@@ -219,24 +219,187 @@ And it worked! I got a picture on my monitor!
 Using a 1m DAC is fine and all but the goal is at least a 50m distance. 
 To start things out, I used a 15m cable and it still somewhat worked !?
 
-I used jellyfin to play videos on the output and misteriously, while I had the window in the foreground everything was fine, no issues at all! But, as soon as I clicked else-where, the link crashed and would not come back up.
+I used jellyfin to play videos on the output and mysteriously, while I had the window in the foreground everything was fine, no issues at all! But, as soon as I clicked elsewhere, the link crashed and would not come back up.
 
-{{<todo>}} Video DEMO of the issues that appears with a long cable {{</todo>}}
+While the "Sync" LED indicated that it was trying to sync, using my 50m fiber cable didn't show any picture in any condition!
 
-While it did try to sync, using my 50m fiber didn't show any picture in any condition!
+After some investigation, I realized that the only thing that changed in the source picture is the color of the title bar of the window:
 
-As I will discover later, this wasn't really caused by something I did (my bad PCB design I probably didn't help tho).
-But at the time I thought it was the "cheap" chips I was using so I started a new prototype
+![Jellyfin on the foreground](images/chrome_2024-11-03_19-44-08_b4e278cf-d052-4c7d-9922-73718d306164.png)
+![Jellyfin on the background](images/chrome_2024-11-03_19-43-23_8d4d4323-8308-45d8-8d58-1f6be50ee616.png)
+
+After grabbing the pixel color (which was RGB `43, 43, 43`), I did a quick test with paint to try to reproduce the issue. And as you can see, it seems that this color is indeed part of the problem:
+
+{{<og "https://www.youtube.com/watch?v=a2gg0saaE4M">}}
+
+My best guess is that this color somehow translates to the gray (RGB `68, 68, 68` YCbCr `68, 128, 128`) part of the SDI pathological test pattern.
+
+> The SDI pathological test pattern is specifically designed to stress test the SDI equalizer and PLL performance.
+> The test pattern consists of a static test image with the top half of the lines filled with a shade of magenta, and the bottom half of the lines filled with a shade of gray.
+
+{{<og "https://www.intel.com/content/www/us/en/docs/programmable/683416/22-1/sdi-pathological.html" >}}
+
+From what I understand, these colors basically produce long strings of zeros and ones in the datastream. This type of pattern is particularly challenging for SDI equalizers and PLLs to process correctly.
+
+At this point I was sure that the issue was caused by a bad design on my part or that the `EQCO30T5`/`EQCO30R5` were pushed too far with 3G SDI. However, I couldn't shake off the feeling that there might be something else at play here.
+
+So instead of re-thinking my test setup, I went ahead and started working on the third prototype. 
 
 ## Third prototype
 
+Alright, so, let's dive into the third prototype. 
 
+The second prototype had many issues, the biggest one is, as demonstraded the SDI pathological test patterns. 
+This was the main thing I wanted to tackle with this iteration and I was hopeful that it would be the last one.
+
+### Changes
+#### SDI equilizer
+
+First off, I swapped out the SDI equalizer from the `EQCO30R5` to the `LMH0344`. 
+
+While both chips are designed for `SD-SDI` & `HD-SDI` with the capability to go up to `3G-SDI`, the `EQCO30xx` chips seem not to be designed for this application but more to be used in the other direction.
+
+On the otherhand the datasheet of the `LMH0344` talks way more about 3G-SDI. Alongside that it also has a `Mute` pin and `Cable/Carrier detect` signaling pin.
+It also mentions that the footprint is compatible with the `LMH0044`, `LMH0384` and `LMH0074`; It also states that it replaces the `GS2974A` and `GS2974B` chips from Semtech.
+
+This gives me a lot of flexibility in case I want to change chips in the future.
+
+But, as it turns out, the footprints of the `EQCO30R5` and `LMH0344` are extremly similar (at least the important parts), a few pins are marked DNC on the `EQCO30R5` and a capacitor is needed by the `LMH0344` where there isn't one for the `EQCO30R5`. <br>
+Both of these issues can be solved by adding 0ohm resitors that may or may not be placed during assembly.
+
+In my head, this switch was good because the new component offered better performance and more flexibility.
+
+#### Power supply
+
+During my tests, I noticed that the AMS1117 LDO regulator that I was using to provide 3.3v to the SFP and other was getting rather hot.
+
+A quick search online + digging arorund in datasheets revealed the issue:
+  - The SFP+ module alone consumes arround 500mA
+  - The `EQCO30T5` typically consumes 45mA
+  - The `EQCO30R5` typically consumes 55mA 
+
+Which gives a total of 600mA.
+
+A quick calculation for the max power dissipation of the `AMS1117` shows that current consumption is borderline over the limit which explains why I had a furnace on my board 😂.
+
+While I choose an LDO to reduce the risk of electrical noise producing more issues, this won't do. The end goal is to stack a bunch of these boards together which means that heat might cause issues.
+
+Instead I complicated things and went with the `TPS5430`, a 3A step-down buck converter which integrates the mosfet. The buck converter will provide a more efficient voltage regulation and can handle higher current demands without getting hot. The **only** reason I choose this model is because it's part of the "Basic" parts selection of JLCPCB which means I don't have to pay extra later.
+
+But I recently used the `AP62200` for another project and I quite like this chip, mainly due to it's size and the fact that it can accept 5V (something the TPS5430 doesn't 😥).
+
+#### Fixed layout
+
+The previous prototypes all had different size, different mounting hole locations, etc...
+
+I wanted to change that so I decided on a fixed layout for every "external" component:
+  - SFP cage & connector
+  - Status LEDs
+  - SDI In & Out connectors
+  - Mounting holes
+
+This resulted in something like this:
+
+![Fixed layout](images/chrome_2024-11-03_22-08-04_fc155cd8-8f01-482f-87c3-75233f837f9f.png)
+
+I then decided that if I were to do another prototype theses components would not change location.
+
+### PCB
+
+I wish I had something else than a render to show you but as I'll explain later, I don't have any board that is fully populated
+
+![Third prototype](images/chrome_2024-11-03_22-12-39_b545dc73-13aa-477c-b6a1-a626815b476d.png)
+
+As you can see I also added configuration pads for the SFP+ module and experimentally added a link between the LOS signal of the SFP to the output enable of the cable driver, I also added a link between the cable detect of the equalizer and the TXDIS of the SFP
 
 ### Issues for longer distances still present
-### Possible fix for said issue?
+
+Even with all the improvements / changes I made in the third prototype, the performance issues were still a nagging problem. Using a 15m fiber cable worked, but extending that to even longer distances like 50 meters didn't work at all. When I hooked up my setup to test it over this distance, there wasn't any picture at all on the receiving end.
+
+{{<todo>}} Missing some boilerplate stuff {{</todo>}}
+
+### A potential solution
+
+While doing some tests, I realized that the very first prototype used the `LMH0397` which while uni-directional, does include a reclocker.
+
+After getting this board up and running again, I managed to get some partial success. The arteffacts where completly gone with the 15m fiber and the 50m one now showed a picture but still had arteffacts present in some cases.
+
+I was thinking that maybe if I had them on each side it would work better but that would raise the price so much. Instead, decided that I would investigate a bit more before committing to this solution.
+
 ### Oh, f---, that was the issue!
+
+After spending countless hours tweaking my design and trying different configurations, I was about ready to pull my hair out. It seemed like no matter what changes I made, those pesky signal integrity issues persisted. 
+
+Then one day, while discussing this with some friends, we talked about the fact that it would be a good idea to have "proper" equipment to validate my design. So I decided to buy the [Micro Converter BiDirectional SDI/HDMI 3G](https://www.blackmagicdesign.com/fr/products/microconverters/techspecs/W-CONU-09) from blackmagic.
+
+After waiting a few days for the parcel to arrive I proceded to test it. To my surprise, everything worked, flawlessly even with the 50m cable. 
+
+I then tried using the cheap HDMI to SDI converter with the blackmagic one acting as the receiver, and I could see that the lock indicator flickered. The other way arround worked but showed the same symptoms as before.
+
+In the end, most of these issues where caused by these cheap converters. Once I switched them out for higher-quality modules, everything clicked into place. The long-distance performance improved drastically, and the intermittent issues vanished.
+
+This is when I realized two thing:
+  - The converters I had are suitable for long distance
+  - I had to buy new converters that are twice the price.
+
+For fun I also tried to chain every piece of fiber and coax I had. This came to a total of 95m of fiber 30m of coax if this test completed successfully it would mean that he sgianl would have traveled 220m 🤔. And to my surprise, **IT WORKED 😮🥳**
+
+I also decided that I wasn't happy with the current version mainly due to the fact that these prototype were still using a 2 layer board which is a hell of a sin with high speed signaling
+
 
 ## Fourth prototype / Final versions
 
+Nothing really important changed in these version.
+
+The only thing that changed are:
+  - SMT Leds for status & power indicators
+  - Changed the footprint of the jumpers to allow floating configuration
+  - Power input via the center mounting hole
+  - Debug port with all the signals and I2C connections
+
+One thing that I also wanted to change is the connector. The one I was using were 50Ohm SMA connectors which is both the wrong impedance and connector for SDI.
+
+Initially I wanted to use proper BNC connectors but after browsing digikey I quickly found that they are SHOCKINGLY expensive. Proper edge connectors from the likes of [Amphenol RF](https://www.amphenolrf.com/) or others costs a minimum of 5eur per connector.
+
+This is unacceaptable for such a low cost device.
+
+Instead I used the footprint of the [034-1030-12G](https://www.amphenolrf.com/034-1030-12g.html) from amphenol which is a 12G 75Ohm right angle HD-BNC connector. This means that these boards are technically compatible with a connector but there's no way in hell I'm going to use it.
+
+Instead I'm buying [SDI male-male panel mount patch cables](https://aliexpress.com/item/1005003231536595.html) cutting them in half and soldering them directly to the PCB.
+
+According to the responses I got from my question on electronics.stackexchange.com:
+
+{{< og "https://electronics.stackexchange.com/questions/724137/soldering-rg179-coaxial-cable-directly-to-pcb" >}}
+
+It should be perfectly fine to solder them directly.
+
+One thing I did differently is that I made two version of this prototype, one being the "Normal" version using the `EQCO30T5` and the "Reclocked" version using the `LMH0397`
+
 ### "Normal" version
+
+![Fourth prototype - Normal version](images/chrome_2024-11-03_23-15-08_3171187c-706b-4f03-ade8-a1dd6135469c.png)
+
+{{< todo>}} Soldered photo {{</todo>}}
+
 ### "Reclocked" version
+
+![Fourth prototype - Reclocked version](images/chrome_2024-11-03_23-14-53_05be8a04-22af-4900-90d1-81f8cbbd9c1f.png)
+
+{{< todo>}} Soldered photo {{</todo>}}
+
+## Assembly
+
+{{< todo>}} Photo of all cards {{</todo>}}
+
+{{< todo>}} Photo of the converter block {{</todo>}}
+
+### 1U rack chassis conversion
+
+{{< todo>}} Photo of the assembly {{</todo>}}
+
+{{< todo>}} Video real test with the MPO-12 breakout {{</todo>}}
+
+## Conclusion
+
+
+This taught me the (expensive) lesson that when dealing with unknown & diffcult stuff that requires external components, always prioritize the quality of the equipment you use to validate your design
