@@ -13,6 +13,9 @@ urls:
 
 plantuml_picoserver: http://127.0.0.1:8080/render
 
+ssr:
+  user_agent: "Mastodon/4.3.0-rc.1+glitch (http.rb/5.2.0, like Discordbot; +https://60228.dev/)" 
+
 webMaster: 
   email: samuel@thestaticturtle.fr
   name: Samuel
