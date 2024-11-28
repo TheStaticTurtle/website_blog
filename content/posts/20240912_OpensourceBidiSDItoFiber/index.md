@@ -449,4 +449,4 @@ While this project has come a long way from that first proof of concept, there's
 
 If you read this out to the end, first congrats 🎓, second, don't hesitate to reach out. I'm always down for a chat. Happy hacking! 🔧✨
 
-**Thanks to:** [Yuki](https://yukiisbo.red/), [Romain](https://romainmunier.fr/), and Geoffrey for the help proofreading this massive article.
+**Thanks to:** [Yuki](https://yukiisbo.red/), [Romain](https://romainmunier.fr/), [Quentin](https://www.linkedin.com/in/quentin-courderot/), and Geoffrey for the help proofreading this massive article.
