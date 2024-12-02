@@ -1,9 +1,9 @@
 ---
 slug: diy-opensource-bidirectional-sdi-to-fiber-converter
-title: "Building an open-source Bidi SDI to Fiber converter"
+title: "Building an open-source bi-directional SDI to Fiber converter"
 draft: false
 featured: false
-date: 2024-02-17T12:00:00.000Z
+date: 2024-12-02T09:00:00.000Z
 image: "images/IMG_20241028_183558.jpg"
 tags:
   - electronics
@@ -15,7 +15,7 @@ authors:
   - samuel
 ---
 
-Building a very affordable and open source bidirectional 3G-SDI to Fiber converter.
+Creating a DIY open-source and budget-friendly bidirectional 3G-SDI to fiber converter using readily available components and determination.
 
 <!--more-->
 

@@ -1,7 +1,7 @@
 ---
 slug: combating-ewaste-the-hard-way-unlocking-bioses
 title: "Combating E-Waste the hard way: Reflashing locked BIOSes"
-draft: false
+draft: true
 featured: false
 date: 2024-02-17T12:00:00.000Z
 image: "images/cover.jpg"
