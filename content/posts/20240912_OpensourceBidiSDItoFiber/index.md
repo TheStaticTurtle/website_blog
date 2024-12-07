@@ -4,7 +4,7 @@ title: "Building an open-source bi-directional SDI to Fiber converter"
 draft: false
 featured: false
 date: 2024-12-02T09:00:00.000Z
-image: "images/IMG_20241028_183558.jpg"
+image: "images/cover.jpg"
 tags:
   - electronics
   - opensource
