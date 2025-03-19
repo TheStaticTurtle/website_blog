@@ -13,6 +13,11 @@ tags:
   - concerts
 authors:
   - samuel
+thanks:
+  - yuki
+  - romain
+  - quentin
+  - geoffrey
 ---
 
 Creating a DIY open-source and budget-friendly bidirectional 3G-SDI to fiber converter using readily available components and determination.
@@ -448,5 +453,3 @@ Here is the repo holding the schematic & PCB for each version:
 While this project has come a long way from that first proof of concept, there's always room for improvement 🚀. The pro-AV space is exciting and constantly evolving, so there are plenty of opportunities to innovate. I'm already thinking about other projects 🤐 (audio over fiber, anyone?). 
 
 If you read this out to the end, first congrats 🎓, second, don't hesitate to reach out. I'm always down for a chat. Happy hacking! 🔧✨
-
-**Thanks to:** [Yuki](https://yukiisbo.red/), [Romain](https://romainmunier.fr/), [Quentin](https://www.linkedin.com/in/quentin-courderot/), and Geoffrey for the help proofreading this massive article.

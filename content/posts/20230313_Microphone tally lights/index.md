@@ -15,13 +15,21 @@ tags:
   - 3D
 authors:
   - samuel
+thanks:
+  - yuki
+  - romain
+  - dastan21
+  - david
+  - geoffrey
 ---
 
 Creating a microphone holder with tally lights for a live show and integrating it to the MIDAS M32 mixing console
 
 <!--more-->
 
-**WARNING: This is a stupidly long article, it details the concept, design, and construction phases thoroughly, you'll need probably more than 45 min to really read it**
+{{< warn >}}
+This is a stupidly long article, it details the concept, design, and construction phases thoroughly, you'll need probably more than 45 min to really read it
+{{< /warn >}}
 
 Every once in a while, I work in my local choir. Every few years, they do a tour singing music for around 3h. This year there are more than 25 singers and 15 microphones. Add microphones for the drums, bass, guitar, saxophone, trumpet, ..... and you reach the maximum 32 channels of our MIDAS M32 console quite fast.
 
@@ -820,5 +828,3 @@ I think it would even be possible to implement some kind of auto-mixer where it 
 I do think that the biggest improvement I could make is using a custom PCB for the holders and printing it in a different material.
 
 Overall, very pleased with this project 😄.
-
-**Thanks to:** [Yuki](https://yukiisbo.red/), [Romain](https://romainmunier.fr/), [Dastan21](https://github.com/Dastan21), [David](https://www.tugler.fr/) and Geoffrey for proofreading this massive article.
