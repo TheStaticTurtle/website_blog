@@ -153,22 +153,139 @@ Now how does ultranet differs from AES3?
 
 - **Digital Processing**
   - **A/D conversion:** 24-bit, 44.1 / 48 kHz sample rate
+  - **Latency:** <0.9 ms (from P16-I to P16-HQ)
 - **System**
   - **Signal:** 16 channels, plus bus-power for P16-HQ
-  - **Latency:** <0.9 ms (from P16-I to P16-HQ)
+  - **Power**: 
+    - P16-M consumes max. 5W
+    - P16-D consumes max. 40W
 - **Cabling**
   - **Connectors:** RJ45
   - **Cables:** Shielded CAT5
   - **Cable length:** max. 246 ft / 75 m recommended
 
+Appart from the channel count, given the audio format and that the signal runs over cat5 it sounds a lot like AES3. The product sheet also tells us that power is ran on the same cable somehow.
 
-#### What we know from reverse-engeenering and probing 🍑
+{{<todo>}} More facts, presented better? {{</todo>}}
 
-AES3 The hardware interface is usually implemented using RS-422 line drivers and receivers.
+#### Probing and reverse-engeenering the electronics 🍑 
 
+As I said before, the work that Christian did is what kickstarted this project, at this point he already published his video and figured out that as ultranet uses generic CAT5 cables which means they most likely that they also use standard wiring.
 
+As it turns out (and we'll see why later in the protocol section), ultranet does not send 16 channels down a single stream, instead, it sends 8 channels over two separate (but synchronized) streams.
+That means 2 out 4 pairs are used for audio, and leaves 2 pairs for power which looks a lot like 100BASE-T with PoE mode B 😅.
+
+| Pin | Pair | Use for 100BASE-T<br>with PoE mode B | Use for Ultranet |
+|:---:|:----:|--------------------------------------|------------------|
+| 1   | 3    | 📤 TX+                               | 🔊 CH_1-8_+     |
+| 2   | 3    | 📤 TX-                               | 🔊 CH_1-8_-     |
+| 3   | 2    | 📥 RX+                               | 🔊 CH_1-8_+     |
+| 4   | 1    | 🔌 48VDC                             | 🔌 15VDC        |
+| 5   | 1    | 🔌 48VDC                             | 🔌 15VDC        |
+| 6   | 2    | 📥 RX-                               | 🔊 CH_1-8_+     |
+| 7   | 4    | 🔌 48VDC                             | 🔌 15VDC        |
+| 8   | 4    | 🔌 48VDC                             | 🔌 15VDC        |
+
+To convert the differential pairs to actual signals that can be read should be too difficult. Reading the `EBU Tech 3250-2004 Specification of the digital audio interface (AES/EBU)` document, there is a whole section on how AES3 should be wired:
+
+![Simplified example of the AES3 circuit ](images/chrome_2025_03_20_10-55-33_aIfIGn3OAq.png)
+
+{{<todo>}} Needs a higher resolution graphics {{</todo>}}
+
+Here are a few of the characteristics that have to be respected:
+> The interconnecting cable shall be balanced and screened (shielded) with nominal characteristic impedance of 110 Ohms at frequencies from 0.1 to 128 times the maximum frame rate.
+
+> The line driver shall have a balanced output with an internal impedance of 110 Ohm ± 20%, at frequencies from 0.1 to 128 times the maximum frame rate when measured the output at terminals.
+  
+> The signal amplitude shall lie between 2 and 7 V peak-to-peak, when measured across a 110 Ohm resistor connected to the output terminals, without any interconnecting cable present.
+
+> Any common mode component at the output of the equipment shall be more than 30 dB below the signal at frequencies from DC to 128 times the maximum frame rate.
+
+That's a bunch of information, and there is even more in the document. But to by honest for a prototype, I just YOLO-ed based on quick datasheet read-throughs and the work of Christian.
+
+So where to start, well we know a few important things:
+  - 110 Ohms ± 20%
+  - Between 2 and 7 volts peak-to-peak
+  - The AES3 bitstream is 6.144 Mbit/s for 48Khz 2ch and I for now we are going to assume that ultranet is 8ch/stream, so 24.576 Mbit/s
+  - They seem to skirt the "this breaks the spec" line of every specification they based ultranet upon.
+
+So it's very likely that they are using standard line driver running at 5V over generic ethernet pulse transformer which are typically 100 Ohms (which fits the tolerance)
+
+{{<todo>}} Paragraphs on top need re-wording {{</todo>}}
+
+During his project, Christian made a small PCB to receive ultranet, he used the [SI-52008-F](https://www.mouser.fr/datasheet/2/643/belfs08419_1-2290057.pdf) an RJ-45 connector with integrated magnetics and PoE capability. This connector is then wired to the [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf), a `Low-Voltage, High-Speed Quadruple Differential Line Receiver` that can handle up to 32MHz data rates can receive 5V signals and outputs 3.3V.
+
+![AM26LV32 Logic diagram](images/chrome_2025_03_20_11-23-59_MV5yxRStla.png)
+
+This seems pretty good, but writing this article I did notice that the common-mode range is 2 volts under the AES3 spec but I doubt it's going to cause massive issues and I won't be swapping it for something else for part 2.
+
+The [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf) also have a brother, the [AM26LV31](https://www.ti.com/lit/ds/symlink/am26lv31.pdf) a `Low-Voltage High-Speed Quadruple Differential Line Driver` which has pretty much the same specs but goes into the other direction:
+
+![AM26LV31 Logic diagram](images/chrome_2025_03_20_11-27-50_OS4d4oYBDK.png)
+
+{{<todo>}} Explain / reword the part on top {{</todo>}}
+
+While writting this article I speak as tho this is obvious and the only option. Truth is until very late into the project I was extremly unsure about the electronics. At the time, I was struggling getting a signal in/out from real hardware and I was suspecting these circuit more and more.
+
+This lead me down the path of trying to reverse-engeenier the electrical side of a proprietary protocol with nothing but google image. After much research I stumbled onto the [Klark Teknik DM80-Ultranet](https://www.thomann.fr/klark_teknik_dm80_ultranet.htm) an ultranet expention card for the [DM8000](https://www.klarkteknik.com/product.html?modelCode=0829-AAC). What was really interesting was the very nice, high resolution, top view of the pcb.
+
+After loading the image into gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/) I managed to get the information I was looking for:
+
+![Klark Teknik DM80-Ultranet reverse-engeeniering](images/ultranet_hardware_1.jpg)
+
+{{<todo>}} More photos (+ nedd to archive them before publishing) {{</todo>}}
+
+The AES3 signals both go into a [SN74LVC1G04](https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf) `Single Inverter Gate` and a [SN74LVC1G125](https://www.ti.com/lit/ds/symlink/sn74lvc1g125.pdf) `Single Bus Buffer Gate` which gives a 5V differential signal. It then goes into what I assume to be filters, a protection diode, and a common mode choke, before going into either, the conector directly or through magnetics (we can only guess here but I think it goes straight to the connector).
+
+The receive side goes from the connector (again, maybe through magnetics but I doubt it) through what I assume to be a common mode choke into what I guess is a pulse transformer and I didn't bother going further as I already had this working and it worked for Dr. Nöding.
+
+After this evening I was confdent that the implementation that we'll see later was correct enought to work!
+
+#### Reverse-engeenering the protocol
+
+So how would you send 16 channels of digital audio down a CAT5 cable?
+
+A important thing to remeber is that while is it's own thing, Ultranet is based on existing protocols and from what I've seen they try to not break them too much.
+
+From different photos of main boards of products that implement ultranet, we can see a recuring a recurring pattern, there always seem to be two for the same ICs, the [AK4114](https://media.digikey.com/pdf/Data%20Sheets/AKM%20Semiconductor%20Inc.%20PDFs/AK4114.pdf). This IC is a `High Feature 192kHz 24bit Digital Audio Interface Transceiver`
+
+> The AK4114 is a digital audio transceiver supporting 192kHz, 24bits. The channel status decoder supports both consumer and professional modes. The AK4114 can automatically detect a Non-PCM bit stream. When combined with the multi channel codec (AK4527B or AK4529), the two chips provide a system solution for AC-3 applications. The dedicated pins or a serial µP I/F can control the mode setting.
+
+Features include:
+  - AES3, IEC60958, S/PDIF, EIAJ CP1201 Compatible
+  - Unlock & Parity Error Detection
+  - Validity Flag Detection 
+  - Up to 24bit Audio Data Format
+  - Master Clock Outputs
+
+From all of this it seems that it's a bog-standard AES3/SPDIF receiver. Which means that once again Behringer didn't go too far into customizing the protocol.
+
+So how do you fit 16 channels into the 192kHz the chip supports?  Well you don't, as I mentioned before there are two chips. <br>
+But wait this still leaves 8 channels, so how do you do this? Well 48Khz is for two channels, math tells us that `2 * 4 = 8` and that `48 * 4 = 192` that means it can theoratically fit.
+
+Okay enought guessing: it would seem that ultranet basically is AES3 running at 192Khz with the 8 channels multiplexed together. 
+
+![Ultranet frame structure](images/83f50102-2ddf-4e3b-9dce-9a1826bb5508.png)
+
+{{<todo>}} Needs better graphics to explain this {{</todo>}}
+
+I'll explain later why I think that something fishy is going on and that there is more to channel ordering than this but it's the basic idea!
+
+That leaves the content of those bits, are they different? Well yes!, somewhat!:
+  - Because the use standard parts the preambles are the same
+  - As well as the audio data.
+  - The validity bit seems to be inverted, which seems logicial when you think about it.
+  - The user bits seem to be unused
+  - The channel bits are used but not idea for what yet changing them seemed to have no audible effect.
+  - And again, because the use standard parts, the parity bit simply cannot change (which I discovered the hard way) 
+
+{{<todo>}} Needs a better chapter ending {{</todo>}}
 
 ## Building a dev-board
+And that's it really so let's start doing some tangible stuff for this project.
+
+I decided that my first step would be to design a prototype devellopment board where I could easylly explore different avenues before going straight into final-ish design.
+
 ### Board bring-up & mistakes
 
 ## Blind implementation
@@ -187,3 +304,6 @@ AES3 The hardware interface is usually implemented using RS-422 line drivers and
 ## What's next
 
 ## Conclusion
+
+
+During the project I thought multiple times about ditching the FPGA implementation and using the AK4114, however, it's EOL and was quite expensive. There are alternatives from TI for example but where's the fun in that 😭?
