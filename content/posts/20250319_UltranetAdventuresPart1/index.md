@@ -286,7 +286,51 @@ And that's it really so let's start doing some tangible stuff for this project.
 
 I decided that my first step would be to design a prototype devellopment board where I could easylly explore different avenues before going straight into final-ish design.
 
+Where to start, a microcontroller? Nope dealing with those signals is unpractical on traditional MCUs (not to mention latency) I think it would be possible to do it but it would most likely require a DIX like the AK4114.
+
+Instead this was the perfect project to finally start working with FPGAs. I've had these in the back of my mind for quite a while now but never had a pratical use for it. Doing what can be summurized to shiftting bits arround is the perfect job for one!
+
+### But which FPGA
+
+FPGA characteristics are far and wide, they range from the tinyest FPGA that can run very simple tasks or monsters that can deal with hundereds of gigabits of data per second.
+
+Receiving and transmitting two AES3 streams at 192Khz doesn't take a lot, especially since I won't be implementing audio filters.
+
+So it mainly came down to what I could get on a devboard for cheap and fast, there are two options I considered:
+  - The [Arduino MKR Vicor 4000](https://docs.arduino.cc/hardware/mkr-vidor-4000/) which uses the Intel Cyclone 10CL016
+  - The [SiSpeed Tang Nano 9K](https://wiki.sipeed.com/hardware/en/tang/Tang-Nano-9K/Nano-9K.html) which uses the Gowin GW1NR-9
+
+In the end, despite that the HDL was successfully tested onthe Vicor, I choose the Tang Nano 9k mainly because for some reason it look more friendly and better for the price.
+
+{{<todo>}} More information is need and mor text is needed {{</todo>}}
+
+### Mixing domains
+
+Here there is a bunch of options and all of them are great in the end the choice came down to familiraty with the chips and ease of configuration.
+
+For the ADC, I choose the [PCM1808](https://www.ti.com/lit/ds/symlink/pcm1808.pdf) which is a `Single-Ended, Analog-Input 24-Bit, 96-kHz Stereo ADC`
+
+For the DAC, I choose the [PCM5102A](https://www.ti.com/lit/ds/symlink/pcm5102a.pdf) which is a `Audio Stereo DAC with PLL and 32-bit, 384 kHz PCM Interface`
+
+{{<todo>}} Rewording and lengthening is needed {{</todo>}}
+
+### Clocks
+
+Clocks are important it's what dictates what happens when, having the right frequency is even more important. The Tang 9k has a 27MHz crystal on board and 2 PLLs on-chip so I could generate the "master-clock" from there. However from some tests I did before the devboard PCB, I could never got it exactly right.
+
+Instead I used a dedicated chip, the [PLL1707](https://www.ti.com/lit/ds/symlink/pll1707-q1.pdf), this chip is awesome, it can generate the exact frequencies needed for typical audio. Crucially it can go to 512 times the sampling frequency meaning 48kHz * 512 = 24.576 MHz.
+
+For internal stuff inside the FPGA that needs to go faster I used this clock multiplied by 10.
+
+{{<todo>}} Rewording and lengthening is needed {{</todo>}}
+
+### I/O
+
 ### Board bring-up & mistakes
+
+#### Power
+#### Analog
+#### I/O
 
 ## Blind implementation
 ### Transmitter
