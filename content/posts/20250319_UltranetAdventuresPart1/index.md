@@ -17,6 +17,7 @@ thanks:
   - christian-noeding
   - geoffrey
   - romain
+  - david
 ---
 
 Deep-diving into ultranet and re-implementing both a receiver and transimtter on FPGA.
@@ -29,39 +30,37 @@ This is a stupidly long article, it details the different phases thoroughly, you
 
 ## Why
 
-In my last article about the opensource SDI to fiber converter, I briefly talked about my brand new MPO-12 cable with 12 OM3 fibers.
-I've also hinted that I might use the two spare fibers I had for audio.
+In my last article about the opensource SDI to fiber converter, I briefly talked about my brand new MPO-12 cable with 12 OM3 fibers 🔦.
+I've also hinted that I might use the two spare fibers I had for audio 🔊.
 
 When I first started this project there were three "mainstream" ways I thought I could do this:
 
-- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's proffestional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3)) is a type of digital audio interface. The signal is transmitted over various connectors, or even fibre-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
+- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's proffestional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3)) is a digital audio interface transmitted over various connectors, or even fibre-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
     - The main upside is that there are plenty of modules that already exist to convert analog to digital and vice-versa
-    - The main downside is that it is only two channels per link
+    - The main downside is that it is only two channels per link 🤔
 - [ADAT Lightpipe](https://en.wikipedia.org/wiki/ADAT_Lightpipe) Lightpipe uses the same connection hardware as S/PDIF: fiber optic cables (hence its name) to carry data, with Toslink connectors and optical transceivers at either end. The main difference stems from the fact that ADAT supports up to 8 audio channels at 48 kHz, 24 bit.
-    - The main upside is that 8 channels is plenty
+    - The main upside is that 8 channels is pretty good 
     - The main downside is that from some quick reasearch there isn't a recent IC or implementation that exists and devices that implement the protocol cost way too much for my use.
-- [Dante](https://en.wikipedia.org/wiki/Dante_(networking)) / [AES67](https://en.wikipedia.org/wiki/AES67), they are a combination of software, hardware, and network protocols that delivers uncompressed, multi-channel, low-latency digital audio over a standard Ethernet network using Layer 3 IP packets.
-    - The main upside is that there are plenty of channels (max 512), it's easy to **use** and it's implemented on a bunch of devices
-    - The main downside is that implementing it to get low latency is going to be a nightmare
+- [Dante](https://en.wikipedia.org/wiki/Dante_(networking)) / [AES67](https://en.wikipedia.org/wiki/AES67), they are a combination of software, hardware, and network protocols that delivers uncompressed, multi-channel, low-latency digital audio over a standard Ethernet network 🌐 using Layer 3 IP packets.
+    - The main upside is that there are plenty of channels (max 512) 📈, it's easy to **use** and it's implemented on a bunch of devices
+    - The main downside is that implementing it to get low latency ⏱ is going to be a nightmare
 
 
-I didn't really like any of these, I did try to build a prototype ADAT board based on the AL1401/A1L402 ICs but I didn't have any luck.
+I didn't really like any of these 😕, I did try to build a prototype ADAT board based on the AL1401/A1L402 ICs but I didn't have any luck 🙁.
 
-Then the universe dropped this gem from Christian Noeding:
+Then the universe dropped this gem 💎 from Christian Noeding:
 
 {{< og "https://www.youtube.com/watch?v=c7VGjq9yp8g" >}}
 
-And this is really what kickstarted the whole thing. From the video, it seemed that Ultranet is somewhat based on two AES3 signals each containing 8 channels.
-This would mean either 8 channels bi-directional or 16 uni-directional. 
-Moreover I do have (limited) access to hardware that can send and receive ultranet so I can easilly test my implementation.
-
-Pretty good so lets get started.
+And this is really what kickstarted the whole thing. From the video, it seemed that Ultranet, a protocol that I seen but never used is somewhat based on two AES3 signals each containing 8 channels.
+This would mean either 8 channels bi-directional or 16 uni-directional channels on two fiber 🤩. 
+Moreover I do have (limited) access to hardware that can send and receive ultranet so I can easily test my implementation.
 
 *Note: for the story's sake events and discoveries aren't neccesarally in chronological order.*
 
 ## Research
 
-As always I did some research, this part also contains discoveries I made along the project.
+As always I did some research 📜, this part also contains discoveries I made along the project.
 
 ### AES/EBU
 
@@ -74,27 +73,28 @@ Well AES3 is a standard, related standards include IEC60958 and AES-2id
 
 AES3 can by transmitted over two main kinds of connections:
 - **IEC60958 Type I**: It uses balanced, three-conductor, 110-ohm twisted pair cabling with XLR connectors. Type I connections are most often used in professional installations and are considered the standard connector for AES3
-- **BNC connectors**: AES/EBU signals can also be run using an unbalanced 75-ohm coaxial cable. The unbalanced version has a very long transmission distance as opposed to the 150 meters maximum for the balanced version. The AES-3id standard defines a 75-ohm BNC electrical variant of AES3
+- **IEC60958 Type II**: Which defines an unbalanced electrical or optical interface for consumer electronics applicationsbased on S/PDIF which in iteslf is based on the original AES/EBU work. S/PDIF and AES3 are interchangeable at the protocol level, but differ at the physical level (voltage / impedances).
+- **BNC connectors**: AES/EBU signals can also be run using an unbalanced 75-ohm coaxial cable. The unbalanced version has a very long transmission distance as opposed to the 150 meters maximum for the balanced version. The AES-3id standard defines a 75-ohm BNC electrical variant of AES3.
 
-{{<todo>}} More information is need on voltages and impedances of the different methods {{</todo>}}
+From the `EBU Tech 3250-2004 Specification of the digital audio interface (AES/EBU)` document, we can get a bunch of information about the electrical characteristics of AES3, which boils down in my opigion to the most important being that the system needs an impedance of 110 Ohm ± 20% with an amplitude that lies between 2 and 7 V peak-to-peak.
 
 #### Encoding
 
-AES3 was designed primarily to support stereo [PCM](https://en.wikipedia.org/wiki/PCM) encoded audio in either [DAT](https://en.wikipedia.org/wiki/Digital_audio_tape) format at 48 kHz or [CD](https://en.wikipedia.org/wiki/CD) format at 44.1 kHz. No attempt was made to use a carrier able to support both rates; instead, AES3 allows the data to be run at any rate, and encoding the clock and the data together using [biphase mark code (BMC)](https://en.wikipedia.org/wiki/Biphase_mark_code).
+AES3 was designed primarily to support stereo [PCM](https://en.wikipedia.org/wiki/PCM) 📊 encoded audio in either [DAT](https://en.wikipedia.org/wiki/Digital_audio_tape) format at 48 kHz 🎤 or [CD](https://en.wikipedia.org/wiki/CD) format at 44.1 kHz 💿. No attempt was made to use a carrier able to support both rates; instead, AES3 allows the data to be run at any rate 💪, and encoding the clock and the data together using [biphase mark code (BMC)](https://en.wikipedia.org/wiki/Biphase_mark_code).
 
-Biphase mark code also known as differential manchester encoding, is a method to transmit data in which the data and clock signals are combined to form a single two-level self-synchronizing data stream. Each data bit is encoded by a presence or absence of signal level transition in the middle of the bit period (Known as time slot for AES3), followed by the mandatory level transition at the beginning. The code is also insensitive to an inversion of polarity
+Biphase mark code also known as differential manchester encoding, is a method to transmit data in which the data 💾 and clock 🕓 signals are combined to form a single two-level self-synchronizing data stream. Each data bit is encoded by a presence or absence of signal level transition in the middle of the bit period (known as time slot for AES3), followed by the mandatory level transition at the beginning of the period. The code is also insensitive to an inversion of polarity 🔀.
 
-![Differential_manchester_encoding](images/Differential_manchester_encoding_Workaround.svg.png)
+There is two variant on BMC:
+ - Transition on 1 which is the one used for AES3
+ - Transition on 0 which is irrelevant for this prjoect
 
-Unlike the diagram on top, AES uses the BMC variant where the codes makes a transition for 1 and no transition for 0.
+![Differential_manchester_encoding](diagrams/bmc-encoding.drawio.png)
 
 Differential Manchester encoding has the following advantages:
 - A transition is guaranteed at least once every bit, for robust clock recovery.
-- If the high and low signal levels have the same magnitude with opposite polarity, the average voltage around each unconditional transition is zero. Zero DC bias reduces the necessary transmitting power, minimizes the amount of electromagnetic noise produced by the transmission line, and eases the use of isolating transformers.
+- If the high and low signal levels have the same magnitude with opposite polarity, the average voltage around each unconditional transition is zero. Zero DC bias reduces the necessary transmitting power, minimizes the amount of electromagnetic noise produced by the transmission line.
 
 These positive features are achieved at the expense of doubling the clock frequency needed to encode the data stream.
-
-{{<todo>}} This chapter needs re-writting to make it easier to understand {{</todo>}}
 
 #### Blocks, frames, time slots
 
@@ -102,9 +102,7 @@ Now that we know of bits flows let's talk about what those bits actually mean!
 
 AES3 is composed of what is called `Audio blocks` these audio blocks are composed of 192*`Frames` each frame containes 2*`Subframes` which in turns contain 32*`Time slots`
 
-![](images/SPDIF_AES_EBU_protocol_colored.svg.png)
-
-{{<todo>}} Needs better graphics to explain this {{</todo>}}
+![](diagrams/aes3-block-structure.drawio.png)
 
 A subframe is composed of:
 
@@ -113,10 +111,12 @@ A subframe is composed of:
 | 0–3           | Preamble                    | A synchronisation preamble                                                                                                     |
 | 4–7           | Auxiliary sample            | A low-quality auxiliary channel used as specified in the channel status word.                                                  |
 | 8–27          | Audio sample                | Audio sample stored MSB last. Can be extented to use the auxiliary sample to increase quality                                  |
-| 28            | Validity (V)                | Unset if the audio data are correct and suitable for D/A conversion. .                                                         |
+| 28            | Validity (V)                | Unset if the audio data are correct and suitable for D/A conversion.                                                           |
 | 29            | User data (U)               | Forms a serial data stream for each channel.                                                                                   |
 | 30            | Channel status (C)          | Bits from each subframe of an audio block are collated giving a 192-bit channel status word.                                   |
 | 31            | Parity (P)                  | Even parity bit for detection of errors in data transmission. Excludes preamble; Bits 4–31 need an even number of ones.        |
+
+![](diagrams/aes3-subframe.drawio.png)
 
 The preamble can be one of three values:
 
@@ -133,12 +133,12 @@ That's a lot to take in so let's look at a practical example from my logic analy
 ![Logic analyser capture of an AES3 signal](images/DSView_2025-03-19_16-07-30_cee0854c-4d4e-4325-bd1f-56633cf9dca8.png)
 
 Let's see what we can figure out:
-- This subframe starts with the B preamble, this tells us that it's the **start of an audio block** and that it's the **left** channel.
+- This subframe starts with the B preamble, this tells us that it's the **start of an audio block** and that it's the **left channel**.
 - We are going to consider that the auxiliary bits are use for audio, if we change the bit order from LSB-first (AES3) to MSB-first (what is generally used for audio) the 24bit **audio data is 0xffffb5**
 - Even tho we have data the validity bit tells us that **this frame is invalid** and that it shouldn't be played
 - Then comes the user bit with an undefined structure
 - The is the channel status word, this tells us that the first bit of the word is **a 0 indicating S/PDIF data**
-- Finnaly the parity bit **is 0** because the number of asserted **bits in the 4-30 range is already an even number of 1s**
+- Finnaly the parity bit **is 0** because the number of **asserted bits in the 4-30 range** already are an **even number of 1s**
 
 And that's it really, the M preamble will then be used for the rest of the left channel subframes and the W will be used for the right channel. 
 Then after 384 subframe, there will be an other B preamble signaling a new block.
@@ -150,6 +150,8 @@ Now how does ultranet differs from AES3?
 {{<warn>}}As there is no official documentation that is publicly availible (or any leaks for that matter), everything that not straight out of a product sheet is informed speculation, reverse-engeinerring and trial & error and might not reflect excatly the actual protocol{{</warn>}}
 
 #### What we know from product sheets:
+
+I read through a bunch of datasheets / quick guides from a bunch of different devices from Berhinger and it's subsidiaries. Here is what is always present and important to us.
 
 - **Digital Processing**
   - **A/D conversion:** 24-bit, 44.1 / 48 kHz sample rate
@@ -164,7 +166,7 @@ Now how does ultranet differs from AES3?
   - **Cables:** Shielded CAT5
   - **Cable length:** max. 246 ft / 75 m recommended
 
-Appart from the channel count, given the audio format and that the signal runs over cat5 it sounds a lot like AES3. The product sheet also tells us that power is ran on the same cable somehow.
+Appart from the channel count, given the audio format & latency plus the fact that the signal runs over cat5 it sounds a lot like AES3. The product sheet also tells us that power is ran on the same cable somehow.
 
 {{<todo>}} More facts, presented better? {{</todo>}}
 
@@ -188,9 +190,7 @@ That means 2 out 4 pairs are used for audio, and leaves 2 pairs for power which 
 
 To convert the differential pairs to actual signals that can be read should be too difficult. Reading the `EBU Tech 3250-2004 Specification of the digital audio interface (AES/EBU)` document, there is a whole section on how AES3 should be wired:
 
-![Simplified example of the AES3 circuit ](images/chrome_2025_03_20_10-55-33_aIfIGn3OAq.png)
-
-{{<todo>}} Needs a higher resolution graphics {{</todo>}}
+![Simplified example of the AES3 circuit ](diagrams/aes-specs.drawio.png)
 
 Here are a few of the characteristics that have to be respected:
 > The interconnecting cable shall be balanced and screened (shielded) with nominal characteristic impedance of 110 Ohms at frequencies from 0.1 to 128 times the maximum frame rate.
@@ -215,7 +215,12 @@ So it's very likely that they are using standard line driver running at 5V over 
 
 During his project, Christian made a small PCB to receive ultranet, he used the [SI-52008-F](https://www.mouser.fr/datasheet/2/643/belfs08419_1-2290057.pdf) an RJ-45 connector with integrated magnetics and PoE capability. This connector is then wired to the [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf), a `Low-Voltage, High-Speed Quadruple Differential Line Receiver` that can handle up to 32MHz data rates can receive 5V signals and outputs 3.3V.
 
-![AM26LV32 Logic diagram](images/chrome_2025_03_20_11-23-59_MV5yxRStla.png)
+{{< gallery >}}
+images/chrome_2025-03-23_14-24-40_2037adcc-535c-4214-934e-fe13cc91facc.png
+images/chrome_2025-03-23_14-23-39_c403c642-afb7-4cc8-b862-0bc40edab97f.png
+images/chrome_2025_03_20_11-23-59_MV5yxRStla.png
+{{< /gallery >}}
+
 
 This seems pretty good, but writing this article I did notice that the common-mode range is 2 volts under the AES3 spec but I doubt it's going to cause massive issues and I won't be swapping it for something else for part 2.
 
@@ -231,9 +236,11 @@ This lead me down the path of trying to reverse-engeenier the electrical side of
 
 After loading the image into gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/) I managed to get the information I was looking for:
 
-![Klark Teknik DM80-Ultranet reverse-engeeniering](images/ultranet_hardware_1.jpg)
-
-{{<todo>}} More photos (+ nedd to archive them before publishing) {{</todo>}}
+{{<gallery>}}
+images/15667910.jpg
+images/ultranet_hardware_2.png
+images/ultranet_hardware_1.jpg
+{{</gallery>}}
 
 The AES3 signals both go into a [SN74LVC1G04](https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf) `Single Inverter Gate` and a [SN74LVC1G125](https://www.ti.com/lit/ds/symlink/sn74lvc1g125.pdf) `Single Bus Buffer Gate` which gives a 5V differential signal. It then goes into what I assume to be filters, a protection diode, and a common mode choke, before going into either, the conector directly or through magnetics (we can only guess here but I think it goes straight to the connector).
 
@@ -265,9 +272,7 @@ But wait this still leaves 8 channels, so how do you do this? Well 48Khz is for 
 
 Okay enought guessing: it would seem that ultranet basically is AES3 running at 192Khz with the 8 channels multiplexed together. 
 
-![Ultranet frame structure](images/83f50102-2ddf-4e3b-9dce-9a1826bb5508.png)
-
-{{<todo>}} Needs better graphics to explain this {{</todo>}}
+![Ultranet frame structure](diagrams/ultranet-block-structure.drawio.png)
 
 I'll explain later why I think that something fishy is going on and that there is more to channel ordering than this but it's the basic idea!
 
@@ -282,59 +287,297 @@ That leaves the content of those bits, are they different? Well yes!, somewhat!:
 {{<todo>}} Needs a better chapter ending {{</todo>}}
 
 ## Building a dev-board
-And that's it really so let's start doing some tangible stuff for this project.
 
-I decided that my first step would be to design a prototype devellopment board where I could easylly explore different avenues before going straight into final-ish design.
+And that's it really, so let's start doing some tangible stuff for this project.
 
-Where to start, a microcontroller? Nope dealing with those signals is unpractical on traditional MCUs (not to mention latency) I think it would be possible to do it but it would most likely require a DIX like the AK4114.
+I decided that my first step would be to design a prototype development board where I could easily explore different avenues before going straight into a final-ish design. This approach will allow me to test various configurations and functionalities without committing too much time or resources upfront.
 
-Instead this was the perfect project to finally start working with FPGAs. I've had these in the back of my mind for quite a while now but never had a pratical use for it. Doing what can be summurized to shiftting bits arround is the perfect job for one!
+Where to start? A microcontroller seems like an good choice, but dealing with the specific signals required for this project is impractical on traditional MCUs (not to mention latency issues). While it might be possible to implement everything using a standard MCU, it would most likely require a specialized digital interface chip (DIX) such as the AK4114. Given these constraints and my interest in exploring new technologies, This was the perfect project to finally start working with FPGAs.
+
+FPGAs have been on my radar for quite some time now but never had a practical use case until now. Shifting bits around is exactly what an FPGA does best! By using an FPGA, I can implement complex digital logic directly in hardware, which offers significant advantages over software-based solutions when it comes to speed and efficiency.
 
 ### But which FPGA
 
-FPGA characteristics are far and wide, they range from the tinyest FPGA that can run very simple tasks or monsters that can deal with hundereds of gigabits of data per second.
+FPGA characteristics are far and wide; they range from tiny FPGAs capable of running very simple tasks to monstrous devices that can handle hundreds of gigabits of data per second. 
 
-Receiving and transmitting two AES3 streams at 192Khz doesn't take a lot, especially since I won't be implementing audio filters.
+Given my project requirements, I need something that is powerful enough to receive and transmit two AES3 streams at 192 kHz, I also want something powerfull enought in case I want to do fancier stuff in the future.
 
 So it mainly came down to what I could get on a devboard for cheap and fast, there are two options I considered:
-  - The [Arduino MKR Vicor 4000](https://docs.arduino.cc/hardware/mkr-vidor-4000/) which uses the Intel Cyclone 10CL016
-  - The [SiSpeed Tang Nano 9K](https://wiki.sipeed.com/hardware/en/tang/Tang-Nano-9K/Nano-9K.html) which uses the Gowin GW1NR-9
+  - [Arduino MKR Vidor 4000](https://docs.arduino.cc/hardware/mkr-vidor-4000/)
+    - This board uses the Intel Cyclone 10CL016 FPGA. 
+    - It offers an integrated ARM Cortex-M0+ microcontroller and a full suite of onboard peripherals, making it versatile for various applications. 
+    - The Cyclone 10CL016 is capable of handling moderate complexity tasks and has sufficient resources to manage the AES3 streams efficiently. [It can even do SDI with some help](https://blog.tempus-ex.com/pro-video-with-arduinos-an-intro-to-sdi-video-and-pcb-fab/)
+  - [SiPEED Tang Nano 9K](https://wiki.sipeed.com/hardware/en/tang/Tang-Nano-9K/Nano-9K.html)
+    - This board uses the Gowin GW1NR-9 FPGA. 
+    - It provides a cost-effective solution with an integrated USB interface, making it easy to program and debug. 
+    - The GW1NR-9 FPGA is smaller in size but still offers enough logic resources for my project's requirements.
 
-In the end, despite that the HDL was successfully tested onthe Vicor, I choose the Tang Nano 9k mainly because for some reason it look more friendly and better for the price.
+In the end, despite that the HDL was successfully tested on the Arduino MKR Vidor 4000, I decided to proceed with the SiPEED Tang Nano 9K due to its cost-effectiveness, ease of use, robust community support, and adequate performance for my project's needs. This choice will allow me to focus on developing the core FPGA functionality without unnecessary complications.
 
-{{<todo>}} More information is need and mor text is needed {{</todo>}}
+### Analog domain
 
-### Mixing domains
+When it comes to handling audio signals within the project, there are numerous options available. You can use dedicated DACs (Digital-to-Analog Converters) and ADCs (Analog-to-Digital Converters), or you can opt for CODECs (Combined Codec and Modulator), each with its own advantages. However, in this case, the choice came down to familiarity with the specific chips and ease of configuration. Given that both the PCM1808 and PCM5102A are well-documented and widely used components by both enthousiasts and professionals, they provide a reliable foundation for my project requirements.
 
-Here there is a bunch of options and all of them are great in the end the choice came down to familiraty with the chips and ease of configuration.
+The Analog-to-Digital Conversion (ADC) part, is using the [PCM1808](https://www.ti.com/lit/ds/symlink/pcm1808.pdf). This device is a high-quality single-ended, analog-input 24-bit ADC capable of operating at up to 96 kHz sample rate in stereo mode.
 
-For the ADC, I choose the [PCM1808](https://www.ti.com/lit/ds/symlink/pcm1808.pdf) which is a `Single-Ended, Analog-Input 24-Bit, 96-kHz Stereo ADC`
+For the Digital-to-Analog Conversion (DAC) part, I opted for the [PCM5102A](https://www.ti.com/lit/ds/symlink/pcm5102a.pdf). This device is a high-performance audio stereo DAC with an integrated PLL (Phase-Locked Loop), capable of handling up to 384 kHz sample rates and supporting 32-bit PCM interfaces. 
 
-For the DAC, I choose the [PCM5102A](https://www.ti.com/lit/ds/symlink/pcm5102a.pdf) which is a `Audio Stereo DAC with PLL and 32-bit, 384 kHz PCM Interface`
+![Photo of the ADC/DAC part of the devboard](images/chrome_2025-03-21_22-20-42_7eb74f57-b6d9-45b3-abed-5aa626c6f3ed.png)
 
-{{<todo>}} Rewording and lengthening is needed {{</todo>}}
+{{<todo>}} Annotation needed on images {{</todo>}}
 
 ### Clocks
 
-Clocks are important it's what dictates what happens when, having the right frequency is even more important. The Tang 9k has a 27MHz crystal on board and 2 PLLs on-chip so I could generate the "master-clock" from there. However from some tests I did before the devboard PCB, I could never got it exactly right.
+Clock signals are the heartbeat of any digital circuit, providing a consistent timing reference that ensures all operations within the system occur in harmony. Without precise clock signals, components like microcontrollers and FPGAs would operate chaotically, leading to data corruption and unreliable performance. 
 
-Instead I used a dedicated chip, the [PLL1707](https://www.ti.com/lit/ds/symlink/pll1707-q1.pdf), this chip is awesome, it can generate the exact frequencies needed for typical audio. Crucially it can go to 512 times the sampling frequency meaning 48kHz * 512 = 24.576 MHz.
+The Tang 9k has a 27MHz crystal on board and two PLLs on-chip, which could theoretically be used to generate the "master-clock".
 
-For internal stuff inside the FPGA that needs to go faster I used this clock multiplied by 10.
+However, after conducting preliminary tests before designing the PCB, I found it challenging to achieve precise clock generation from these on-chip resources. The internal PLLs did not provide the exact frequencies needed for audio processing requirements, and configuring them was a bit complex.
 
-{{<todo>}} Rewording and lengthening is needed {{</todo>}}
+Given that I simply didn't want to deal with this, I decided to use a dedicated clock generation chip, specifically the [PLL1707](https://www.ti.com/lit/ds/symlink/pll1707-q1.pdf).
+This chip is awesome and a perfect example of "don't re-invent the wheel". For a few bucks more, it's an excellent choice for generating precise and stable clock signals, especially since it's designed for audio applications. One of its key features is its ability to generate frequencies up to 512 (768 actually) times the sampling frequency, which means it can produce a 24.576 MHz clock signal (48kHz * 512) exactly as needed for my project's requirements.
+
+For internal operations within the FPGA that require faster speeds, instead of deriving from the 27MHz clock, I utilized this 24.576 MHz signal and multiplied it by 10 to achieve higher-frequency clock signals for internal processing tasks. 
+
+![Photo of the clock on the devboard](images/chrome_2025-03-21_23-38-13_b1dc05e2-14cb-469a-bd8c-4cdf0070992f.png)
+
+{{<todo>}} Annotation needed on images {{</todo>}}
 
 ### I/O
 
+For I/O capabilities, I went all in and included a wide range of functionalities that would make this development board versatile and usefull for multiple projects. Below are the key components I integrated into the design:
+  - Of course there is the 8 input and 8 output audio channels. The second part of this projet will probably have footprints for 16in/16out but I think that 8 is enough for now. Doing it this way, I can send or receive a full half of an ultranet stream.
+  - As I mentioned in the very beginning, the end goal of this project is to run it over fiber so I decided to incorporate an SFP cage along with appropriate line [driver](https://www.ti.com/product/SN65LVDT2/part-details/SN65LVDT2DBVR) and [receiver](https://www.ti.com/product/SN65LVDS1/part-details/SN65LVDS1DBVR). 
+  - I also included footprints for DLT1150R and DLT1150T Toslink connectors. These optical audio connectors support up to 16 Mbps data transfer rates and provide an additional layer of flexibility for connecting various audio devices. 
+  - Finally, the star feature of this project is the inclusion of ultranet transmit and receive ports. 
+
+{{<todo>}} Needs re-wording, this is crap {{</todo>}}
+
+![Photo of the devboard IOs](images/chrome_2025-03-21_23-51-11_a8d58eee-1db8-4792-a731-0e615417a9ff.png)
+
+{{<todo>}} Better photo / annotation {{</todo>}}
+
 ### Board bring-up & mistakes
 
-#### Power
-#### Analog
-#### I/O
+The bring-up is the process that involves initial testing the board to ensure everything function correctly. This includes setting up power, verifying analog connections, and ensuring digital interfaces work as intended.
+
+One of the first things I noticed is that when I plugged my logic analyser on the board, was that there was absolutly no activiy on the clocks for the analog side. This is wired because the mast clock was present but the first PCM1808 is in charge of generating the word clock and bit clock. Turns out, I had forgotten to connect the 3.3VA and 5VA to their respective power lines. These connections were essential for powering the ADCs and DACs.
+
+Thankfully, as I had plastered the board with test points and 0-ohm resistors, the fix was really easy.
+
+Further down in the devellopment, I also needed to change the configuration of the PCM5102A from the I2S format to the left justified format which is a bit easier to deal with when you just began working with FPGAs and don't grasp all the concepts yet.
+
+An other less important issue is that in my haste to get his devboard out the door, I swapped the left and right channels of the DACs.
+Continuing with issues on the DAC side, I also messed up the the output filters which reduced the audio quality quite a bit!
+
+Appart from this, everything surprisingly worked just fine.
+
+{{<todo>}} Photo with bodge annotation {{</todo>}}
 
 ## Blind implementation
+
+Ok, let's start writting code (well for FPGAs it's called HDL). 
+
+At this point I did not have access to any hardware that supports ultranet so I started by writting a blind implementation meaning I wrote bothe the transmitter and receiver parts at the same time validating that they were working by connecting them together and looking a logic analyser captures.
+
 ### Transmitter
-### Receiver
+
+Here is a pretty good overview of how the transmitter works:
+
+![Ultranet transmitter overview](diagrams/transmitter.drawio.png)
+
+#### Clock
+
+The `Clocks` block is in charge of deriving the required clock signals for differents parts of the module based on the master clock. It takes the 24.576 Mhz clock and generates the follwing clocks:
+- AES3 bit clock running at 24.576 Mhz (simply "buffered")
+- AES3 word clock running at 192Khz
+- I2S Bit clock running at 3.072 MHz
+- I2S Word clock running at 48Khz
+
+The process of dividing a clock is quite simple to do, you simply need a counter. Here is for example the process for the bit clock:
+```vhdl
+i2s_bit_clock: process(mclk)  begin
+    if(rising_edge(mclk)) then
+        count_i2s_bclk <= count_i2s_bclk + 1;
+        if(count_i2s_bclk = 3) then
+            i2s_bclk <= not i2s_bclk;
+            count_i2s_bclk <=0;
+        end if;
+    end if;
+end process;
+```
+
+As I said the aes3 bit clock can simply be "buffered" like so:
+```vhdl
+aes_bclk <= mclk;
+```
+
+#### I2S Deserialiser
+
+The `I2S Quad deserializer` block is in charge of reading the bits of the serial audio data in sync with the different clocks.
+The special thing about this block is that it takes four different serial input and integrates the demuxer to output the eight different 24bit vectors.
+
+Even tho the PCM1808 is a 24bit ADC, it will "happilly" accept 32 cycles, this significantly simplifies the clock generation and also allocate me a bit of time to process it.
+
+The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their soul purpuse is to detect a rising/falling edge. Here is an example for the bit clock:
+```vhdl
+detect_bclk_edge : process(clk)
+begin
+    if rising_edge(clk) then
+        zbclk <= bclk;
+        zzbclk <= zbclk;
+        zzzbclk <= zzbclk;
+        if zzbclk = '1' and zzzbclk = '0' then
+            bclk_pos_edge <= '1';
+        elsif zzbclk = '0' and zzzbclk = '1' then
+            bclk_neg_edge <= '1';
+        else
+            bclk_pos_edge <= '0';
+            bclk_neg_edge <= '0';
+        end if;
+    end if;
+end process;
+```
+Then there is two processes, the firdt one is the one that makes the counters tick and more generally where the flow of data is "managed".
+The second one is the one that is reading the serial data on the positive edge of a bit clock into the appropriate buffer when told so by the first process.
+```vhdl
+detect_sample : process(clk) begin
+    if rising_edge(clk) then
+        if bsync_pos_edge = '1' then
+            -- Sync detected, reset every signal
+            bit_cnt <= 0;
+            new_data <= '0';
+        else
+            if lrck_edge = '1' then
+                -- Left/right clock edge detected this means new channel -> reset the bit counter
+                bit_cnt <= 0;
+            end if;
+
+            if bclk_pos_edge = '1' then
+                -- Bit clock positive clock edge detected -> increment the bit counter
+                bit_cnt <= bit_cnt + 1;
+            end if;
+
+            if bclk_neg_edge = '1' then  	
+                -- Bit clock negative clock edge detected ->
+                -- Only read the first 24 bits, check the counter and set the signal appropriatly
+                if bit_cnt = 0 then
+                    has_data <= '1';
+                elsif bit_cnt >= 24 then
+                    has_data <= '0';
+                end if;
+            end if;
+
+            -- Raise new_data at the end of the last bit, only for one clk cycle
+            if bit_cnt = 31 and bclk_neg_edge = '1' and lrclk = '0' then 
+                new_data <= '1';
+            else
+                new_data <= '0';
+            end if;
+
+              -- Output the data
+            if lrck_pos_edge = '1' then
+                sample_out_ch_1_r <= sample_ch_1_r_buf;
+                sample_out_ch_2_r <= sample_ch_2_r_buf;
+                sample_out_ch_3_r <= sample_ch_3_r_buf;
+                sample_out_ch_4_r <= sample_ch_4_r_buf;
+            end if;
+            if lrck_neg_edge = '1' then
+                sample_out_ch_1_l <= sample_ch_1_l_buf;
+                sample_out_ch_2_l <= sample_ch_2_l_buf;
+                sample_out_ch_3_l <= sample_ch_3_l_buf;
+                sample_out_ch_4_l <= sample_ch_4_l_buf;
+            end if;
+        end if;
+    end if;
+end process;
+
+get_data : process(clk) begin
+    if rising_edge(clk) then
+        if bclk_pos_edge = '1' and has_data = '1' then
+            if lrclk = '1' then
+                sample_ch_1_l_buf <= sample_ch_1_l_buf(sample_ch_1_l_buf'high-1 downto sample_ch_1_l_buf'low) & sdata1;
+                sample_ch_2_l_buf <= sample_ch_2_l_buf(sample_ch_2_l_buf'high-1 downto sample_ch_2_l_buf'low) & sdata2;
+                sample_ch_3_l_buf <= sample_ch_3_l_buf(sample_ch_3_l_buf'high-1 downto sample_ch_3_l_buf'low) & sdata3;
+                sample_ch_4_l_buf <= sample_ch_4_l_buf(sample_ch_4_l_buf'high-1 downto sample_ch_4_l_buf'low) & sdata4;
+            else
+                sample_ch_1_r_buf <= sample_ch_1_r_buf(sample_ch_1_r_buf'high-1 downto sample_ch_1_r_buf'low) & sdata1;
+                sample_ch_2_r_buf <= sample_ch_2_r_buf(sample_ch_2_r_buf'high-1 downto sample_ch_2_r_buf'low) & sdata2;
+                sample_ch_3_r_buf <= sample_ch_3_r_buf(sample_ch_3_r_buf'high-1 downto sample_ch_3_r_buf'low) & sdata3;
+                sample_ch_4_r_buf <= sample_ch_4_r_buf(sample_ch_4_r_buf'high-1 downto sample_ch_4_r_buf'low) & sdata4;
+            end if;
+        end if;
+    end if;
+end process;
+```
+
+#### Ultranet mux
+
+The `Ultranet mux` block has a very simple job, each time the AES3 word clock rises or falls it needs to increment a channel counter and output it. Additionally each time it see that new dta is rising it takes a "copy" of the input vectors.
+
+The module starts with some edge detectors but the main logic is this one as you cna see it's pretty simple!
+```vhdl
+process(clk)
+begin
+    if (rising_edge(clk)) then
+        if new_data_pos_edge = '1' then
+            -- Buffer the sample for each input channel
+            ch1_buffer <= ch1_in;
+            ch2_buffer <= ch2_in;
+            ch3_buffer <= ch3_in;
+            ch4_buffer <= ch4_in;
+            ch5_buffer <= ch5_in;
+            ch6_buffer <= ch6_in;
+            ch7_buffer <= ch7_in;
+            ch8_buffer <= ch8_in;
+
+            -- Reset the channel counter
+            channel_cnt <= 0; 
+        end if;
+
+        if aes_lrck_edge = '1' then		
+            -- Increment the channel counter on each pulse
+            channel_cnt <= channel_cnt + 1; 
+
+            -- Output the corrsponding sample
+            if channel_cnt = 0 then
+                ch_out <= ch1_buffer;
+            elsif channel_cnt = 1 then
+                ch_out <= ch2_buffer;
+            elsif channel_cnt = 2 then
+                ch_out <= ch3_buffer;
+            elsif channel_cnt = 3 then
+                ch_out <= ch4_buffer;
+            elsif channel_cnt = 4 then
+                ch_out <= ch5_buffer;
+            elsif channel_cnt = 5 then
+                ch_out <= ch6_buffer;
+            elsif channel_cnt = 6 then
+                ch_out <= ch7_buffer;
+            elsif channel_cnt = 7 then
+                ch_out <= ch8_buffer;
+            end if;
+
+        end if;
+    end if;
+end process;
+```
+
+#### AES3 Transmitter
+
+Here I can't take all the credit I heavilly based my work on the following S/PDIF transmitter project:
+
+{{< og "https://ackspace.nl/wiki/SP/DIF_transmitter_project" >}}
+
+But I adapted it to support the long 384-bit vector for the channel status as well as supporting the user bits and validity bit. Spoiler this is going to bite me in the ass later!
+
+### Receiver 
+#### AES3 Receiver
+#### Clocks
+#### Ultranet Deserialiser
+#### Ultranet Demuxer
+#### I2S Transmitter
+
 ### Alllll the channels
 ### It's working ?
 
@@ -350,4 +593,4 @@ For internal stuff inside the FPGA that needs to go faster I used this clock mul
 ## Conclusion
 
 
-During the project I thought multiple times about ditching the FPGA implementation and using the AK4114, however, it's EOL and was quite expensive. There are alternatives from TI for example but where's the fun in that 😭?
+<!-- During the project I thought multiple times about ditching the FPGA implementation and using the AK4114, however, it's EOL and was quite expensive. There are alternatives from TI for example but where's the fun in that 😭? -->
