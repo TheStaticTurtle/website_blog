@@ -60,23 +60,30 @@ Moreover I do have (limited) access to hardware that can send and receive ultran
 
 ## Research
 
-As always I did some research 📜, this part also contains discoveries I made along the project.
+As always for big projects, I started by doing some research 📜, this part also contains discoveries and light-bulb moments I had during the project.
 
 ### AES/EBU
 
-I mentioned that ultranet is based on AES/EBU so let's start there, how the hell does this work.
-Well AES3 is a standard, related standards include IEC60958 and AES-2id
+I mentioned that ultranet is based on AES3 also known as AES/EBU so let's start there, how the hell does this work and where do we start.
 
-{{<todo>}} More information is need on the specification other documents {{</todo>}}
+The [Audio Engineering Society (AES)](https://www.aes.org/), is a professional society devoted exclusively to audio technology. Alongside other groups like the [European Broadcasting Union (EBU)](https://www.ebu.ch/) they standardize different technologies in the audio/broadcasting area. 
+
+This article will deal with AES3, but other standards like AES67 (the base for audio over IP). Newer standard are behind a paywall, fortunatly AES3 is as older than me, it was first published in 1985 and was revised in 1992, 2003 and 2009 that means that we can find semi-recent leaked PDFs without much diffculty.
+
+Moreover there is a bunch of other documents that talk about this:
+  - [AES/EBU EG](https://tech.ebu.ch/docs/other/aes-ebu-eg.pdf) - Engineering Guidelines - (The AES/EBU audio interface)
+  - [EBU Tech 3250-2004](https://tech.ebu.ch/docs/tech/tech3250.pdf) - Specification of the digital audio interface (The AES/EBU interface)
+  - [IEC60958](https://webstore.iec.ch/en/publication/62829) - Digital audio interface - Part 1: General
+  - AES-2id - Guidelines for the use of the AES3 interface
 
 #### Electrical
 
 AES3 can by transmitted over two main kinds of connections:
-- **IEC60958 Type I**: It uses balanced, three-conductor, 110-ohm twisted pair cabling with XLR connectors. Type I connections are most often used in professional installations and are considered the standard connector for AES3
-- **IEC60958 Type II**: Which defines an unbalanced electrical or optical interface for consumer electronics applicationsbased on S/PDIF which in iteslf is based on the original AES/EBU work. S/PDIF and AES3 are interchangeable at the protocol level, but differ at the physical level (voltage / impedances).
+- **IEC60958 Type I**: This defines a balanced, three-conductor, 110-ohm twisted pair cable with XLR connectors. Type I connections are most often used in professional installations and are considered the standard connector for AES3
+- **IEC60958 Type II**: It defines an unbalanced electrical or optical interface for consumer electronics applications. This implmentation is the one used by S/PDIF. S/PDIF and AES3 are interchangeable at the protocol level, but differ at the physical level (voltage / impedances).
 - **BNC connectors**: AES/EBU signals can also be run using an unbalanced 75-ohm coaxial cable. The unbalanced version has a very long transmission distance as opposed to the 150 meters maximum for the balanced version. The AES-3id standard defines a 75-ohm BNC electrical variant of AES3.
 
-From the `EBU Tech 3250-2004 Specification of the digital audio interface (AES/EBU)` document, we can get a bunch of information about the electrical characteristics of AES3, which boils down in my opigion to the most important being that the system needs an impedance of 110 Ohm ± 20% with an amplitude that lies between 2 and 7 V peak-to-peak.
+From the `EBU Tech 3250-2004` document, we can get a bunch of information about the electrical characteristics of AES3, which boils down in my opigion to the most important being that the system needs an impedance of 110 Ohm ± 20% with an amplitude that lies between 2 and 7 V peak-to-peak.
 
 #### Encoding
 
@@ -134,7 +141,7 @@ That's a lot to take in so let's look at a practical example from my logic analy
 
 Let's see what we can figure out:
 - This subframe starts with the B preamble, this tells us that it's the **start of an audio block** and that it's the **left channel**.
-- We are going to consider that the auxiliary bits are use for audio, if we change the bit order from LSB-first (AES3) to MSB-first (what is generally used for audio) the 24bit **audio data is 0xffffb5**
+- We are going to consider that the auxiliary bits are use for audio this gives us 0xadffff, if we change the bit order from LSB-first (AES3) to MSB-first (what is generally used for audio) the 24bit **audio data is 0xffffb5**
 - Even tho we have data the validity bit tells us that **this frame is invalid** and that it shouldn't be played
 - Then comes the user bit with an undefined structure
 - The is the channel status word, this tells us that the first bit of the word is **a 0 indicating S/PDIF data**
@@ -151,10 +158,10 @@ Now how does ultranet differs from AES3?
 
 #### What we know from product sheets:
 
-I read through a bunch of datasheets / quick guides from a bunch of different devices from Berhinger and it's subsidiaries. Here is what is always present and important to us.
+I read through a bunch of datasheets / quick guides from a bunch of different devices from Berhinger and it's subsidiaries. Here is what is always present and important to this project:
 
 - **Digital Processing**
-  - **A/D conversion:** 24-bit, 44.1 / 48 kHz sample rate
+  - **A/D conversion:** 24-bit, 44.1 kHz / 48 kHz sample rate
   - **Latency:** <0.9 ms (from P16-I to P16-HQ)
 - **System**
   - **Signal:** 16 channels, plus bus-power for P16-HQ
@@ -167,8 +174,6 @@ I read through a bunch of datasheets / quick guides from a bunch of different de
   - **Cable length:** max. 246 ft / 75 m recommended
 
 Appart from the channel count, given the audio format & latency plus the fact that the signal runs over cat5 it sounds a lot like AES3. The product sheet also tells us that power is ran on the same cable somehow.
-
-{{<todo>}} More facts, presented better? {{</todo>}}
 
 #### Probing and reverse-engeenering the electronics 🍑 
 
@@ -188,11 +193,11 @@ That means 2 out 4 pairs are used for audio, and leaves 2 pairs for power which 
 | 7   | 4    | 🔌 48VDC                             | 🔌 15VDC        |
 | 8   | 4    | 🔌 48VDC                             | 🔌 15VDC        |
 
-To convert the differential pairs to actual signals that can be read should be too difficult. Reading the `EBU Tech 3250-2004 Specification of the digital audio interface (AES/EBU)` document, there is a whole section on how AES3 should be wired:
+To convert the differential pairs to actual signals that can be read should be too difficult. Reading the `EBU Tech 3250-2004` document, there is a whole section on how AES3 should be wired:
 
 ![Simplified example of the AES3 circuit ](diagrams/aes-specs.drawio.png)
 
-Here are a few of the characteristics that have to be respected:
+Here are a few other characteristics that have to be respected:
 > The interconnecting cable shall be balanced and screened (shielded) with nominal characteristic impedance of 110 Ohms at frequencies from 0.1 to 128 times the maximum frame rate.
 
 > The line driver shall have a balanced output with an internal impedance of 110 Ohm ± 20%, at frequencies from 0.1 to 128 times the maximum frame rate when measured the output at terminals.
@@ -201,17 +206,15 @@ Here are a few of the characteristics that have to be respected:
 
 > Any common mode component at the output of the equipment shall be more than 30 dB below the signal at frequencies from DC to 128 times the maximum frame rate.
 
-That's a bunch of information, and there is even more in the document. But to by honest for a prototype, I just YOLO-ed based on quick datasheet read-throughs and the work of Christian.
+That's a bunch of information, and there is even more in the document. But to be honest for a prototype, I just YOLO-ed based on quick datasheet read-throughs and the work of Christian.
 
-So where to start, well we know a few important things:
+So to summerize, the important things are:
   - 110 Ohms ± 20%
   - Between 2 and 7 volts peak-to-peak
-  - The AES3 bitstream is 6.144 Mbit/s for 48Khz 2ch and I for now we are going to assume that ultranet is 8ch/stream, so 24.576 Mbit/s
-  - They seem to skirt the "this breaks the spec" line of every specification they based ultranet upon.
+  - The AES3 bitstream is 6.144 Mbit/s for 48Khz 2ch and if we assume that ultranet is 8ch/stream, that is 24.576 Mbit/s
+  - Behringer seem to skirt the "this breaks the spec" line of every specification they based ultranet upon.
 
-So it's very likely that they are using standard line driver running at 5V over generic ethernet pulse transformer which are typically 100 Ohms (which fits the tolerance)
-
-{{<todo>}} Paragraphs on top need re-wording {{</todo>}}
+So we can safely assume that they are using standard line driver running at 5V over generic ethernet pulse transformer which are typically 100 Ohms (which fits the tolerance)
 
 During his project, Christian made a small PCB to receive ultranet, he used the [SI-52008-F](https://www.mouser.fr/datasheet/2/643/belfs08419_1-2290057.pdf) an RJ-45 connector with integrated magnetics and PoE capability. This connector is then wired to the [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf), a `Low-Voltage, High-Speed Quadruple Differential Line Receiver` that can handle up to 32MHz data rates can receive 5V signals and outputs 3.3V.
 
@@ -222,15 +225,13 @@ images/chrome_2025_03_20_11-23-59_MV5yxRStla.png
 {{< /gallery >}}
 
 
-This seems pretty good, but writing this article I did notice that the common-mode range is 2 volts under the AES3 spec but I doubt it's going to cause massive issues and I won't be swapping it for something else for part 2.
+This seems pretty good, but writing this article I did notice that the common-mode range is 2 volts under the AES3 spec but I doubt it's going to cause massive issues for the prototype and I probably won't be swapping it for something else for part 2.
 
 The [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf) also have a brother, the [AM26LV31](https://www.ti.com/lit/ds/symlink/am26lv31.pdf) a `Low-Voltage High-Speed Quadruple Differential Line Driver` which has pretty much the same specs but goes into the other direction:
 
 ![AM26LV31 Logic diagram](images/chrome_2025_03_20_11-27-50_OS4d4oYBDK.png)
 
-{{<todo>}} Explain / reword the part on top {{</todo>}}
-
-While writting this article I speak as tho this is obvious and the only option. Truth is until very late into the project I was extremly unsure about the electronics. At the time, I was struggling getting a signal in/out from real hardware and I was suspecting these circuit more and more.
+While writting this article I say things as tho they are obvious and the only option. Truth is until very late into the project I was extremly unsure about the electronics. At the time, I was struggling getting a signal in/out from real hardware and I was suspecting these circuit more and more.
 
 This lead me down the path of trying to reverse-engeenier the electrical side of a proprietary protocol with nothing but google image. After much research I stumbled onto the [Klark Teknik DM80-Ultranet](https://www.thomann.fr/klark_teknik_dm80_ultranet.htm) an ultranet expention card for the [DM8000](https://www.klarkteknik.com/product.html?modelCode=0829-AAC). What was really interesting was the very nice, high resolution, top view of the pcb.
 
@@ -274,21 +275,19 @@ Okay enought guessing: it would seem that ultranet basically is AES3 running at 
 
 ![Ultranet frame structure](diagrams/ultranet-block-structure.drawio.png)
 
-I'll explain later why I think that something fishy is going on and that there is more to channel ordering than this but it's the basic idea!
+You'll see later why I think that something fishy is going on and that there is more to channel ordering than this but it's the basic idea!
 
 That leaves the content of those bits, are they different? Well yes!, somewhat!:
-  - Because the use standard parts the preambles are the same
+  - Because the use standard ICs the preambles need to be the same
   - As well as the audio data.
-  - The validity bit seems to be inverted, which seems logicial when you think about it.
+  - The validity bit seems to be inverted, which is a good call when you think about it.
   - The user bits seem to be unused
   - The channel bits are used but not idea for what yet changing them seemed to have no audible effect.
-  - And again, because the use standard parts, the parity bit simply cannot change (which I discovered the hard way) 
+  - And again, because they use standard ICs, the parity bit simply cannot change (which I discovered the hard way) 
 
-{{<todo>}} Needs a better chapter ending {{</todo>}}
+And that's it really. Behringer created a very elegant solution stretching existing specification/protocols to meet their needs and didn't completly reinvent the wheel!
 
 ## Building a dev-board
-
-And that's it really, so let's start doing some tangible stuff for this project.
 
 I decided that my first step would be to design a prototype development board where I could easily explore different avenues before going straight into a final-ish design. This approach will allow me to test various configurations and functionalities without committing too much time or resources upfront.
 
@@ -421,8 +420,7 @@ Even tho the PCM1808 is a 24bit ADC, it will "happilly" accept 32 cycles, this s
 
 The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their soul purpuse is to detect a rising/falling edge. Here is an example for the bit clock:
 ```vhdl
-detect_bclk_edge : process(clk)
-begin
+detect_bclk_edge: process(clk) begin
     if rising_edge(clk) then
         zbclk <= bclk;
         zzbclk <= zbclk;
@@ -441,7 +439,7 @@ end process;
 Then there is two processes, the firdt one is the one that makes the counters tick and more generally where the flow of data is "managed".
 The second one is the one that is reading the serial data on the positive edge of a bit clock into the appropriate buffer when told so by the first process.
 ```vhdl
-detect_sample : process(clk) begin
+detect_sample: process(clk) begin
     if rising_edge(clk) then
         if bsync_pos_edge = '1' then
             -- Sync detected, reset every signal
@@ -492,7 +490,7 @@ detect_sample : process(clk) begin
     end if;
 end process;
 
-get_data : process(clk) begin
+get_data: process(clk) begin
     if rising_edge(clk) then
         if bclk_pos_edge = '1' and has_data = '1' then
             if lrclk = '1' then
@@ -517,8 +515,7 @@ The `Ultranet mux` block has a very simple job, each time the AES3 word clock ri
 
 The module starts with some edge detectors but the main logic is this one as you cna see it's pretty simple!
 ```vhdl
-process(clk)
-begin
+process(clk) begin
     if (rising_edge(clk)) then
         if new_data_pos_edge = '1' then
             -- Buffer the sample for each input channel
