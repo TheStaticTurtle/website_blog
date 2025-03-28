@@ -284,8 +284,6 @@ Test: fefv https://www.youtube.com/watch?v=ytWz0qVvBZ0
 
 {{<og "https://twitter.com/gleeda/status/1511789436601876483" >}}
 
-{{<og "https://twitter.com/Foone/status/1511808848729804803" >}}
-
 {{<og "https://stackoverflow.com/questions/6497548/chrome-extension-make-it-run-every-page-load" >}}
 
 {{<og "https://github.com/eried/portapack-mayhem" >}}
