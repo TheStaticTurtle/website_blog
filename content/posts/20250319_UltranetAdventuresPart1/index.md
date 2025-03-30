@@ -18,6 +18,8 @@ thanks:
   - geoffrey
   - romain
   - david
+  - yuki
+  - quentin
 ---
 
 Deep-diving into Ultranet and re-implementing both a receiver and transmitter on FPGA.
@@ -40,12 +42,15 @@ When I started this project, there were four "mainstream" ways I thought I could
 - [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's professional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3)). It's a digital audio interface transmitted over various connectors, or even (plastic) fiber-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
     - The main upside is that there are plenty of cheap modules that already exist to convert analog to digital and vice versa
     - The main downside is that it is only two channels per link 🤔
+    <br><br>
 - [ADAT Lightpipe](https://en.wikipedia.org/wiki/ADAT_Lightpipe). Lightpipe uses the same connection hardware as S/PDIF: fiber optic cables (hence its name) to carry data, with Toslink connectors and optical transceivers at either end. The main difference stems from the fact that ADAT supports up to 8 audio channels at 48 kHz, 24 bits.
     - The main upside is that 8 channels is pretty good 
     - The main downside is that from some quick research there isn't a recent IC or implementation that exists and devices that implement the protocol cost far too much for my use.
+    <br><br>
 - [Multichannel Audio Digital Interface (MADI) / AES10](https://en.wikipedia.org/wiki/MADI). This interface supports serial digital transmission over coaxial cable or fiber-optic lines of 28, 56, 32, or 64 channels and sampling rates to 96 kHz and beyond with an audio bit depth of up to 24 bits per channel.
     - The main upside is the number of channels and the fact that it already runs over multimode fiber 🔦. 
     - The main downside is that it's even worse than ADAT, there isn't a recent/easy implementation that exists and devices that implement the protocol have a prohibitive cost for hobbyist use.
+    <br><br>
 - [Dante](https://en.wikipedia.org/wiki/Dante_(networking)) / [AES67](https://en.wikipedia.org/wiki/AES67). This is a combination of software, hardware, and network protocols that delivers uncompressed, multichannel, low-latency digital audio over a standard Ethernet network 🌐 using Layer 3 IP packets.
     - The main upside is that there are plenty of channels (max 512) 📈, it's easy to **use**, and it's implemented on countless devices
     - The main downside is that implementing it to get low latency ⏱ will be a nightmare
@@ -105,7 +110,7 @@ There are two variants of BMC:
 
 Here is an example diagram representing how the signal behave, there is a transition on each solid line plus a transition on the dotted line if the bit is a one:
 
-![Differential_manchester_encoding](diagrams/bmc-encoding.drawio.png)
+![Differential_manchester_encoding](diagrams/bmc-encoding.drawio.png "Differential Manchester Encoding (AKA Biphase mark code)")
 
 Differential Manchester encoding has the following advantages:
 - A transition is guaranteed at least once every bit, for robust clock recovery.
@@ -119,7 +124,7 @@ Now that we know how to read the bits, let's talk about what those bits actually
 
 AES3 is composed of what is called `Audio blocks` these audio blocks are composed of 192*`Frames` each frame contains 2*`Subframes` which in turns contain 32*`Time slots`
 
-![](diagrams/aes3-block-structure.drawio.png)
+![AES3 Block structure](diagrams/aes3-block-structure.drawio.png "AES3 Block structure")
 
 A subframe is composed of:
 
@@ -133,7 +138,7 @@ A subframe is composed of:
 | 30            | Channel status (C)          | Bits from each subframe of an audio block are collated, giving a 192-bit channel status word.                                   |
 | 31            | Parity (P)                  | Even parity bit for detection of errors in data transmission. Excludes preamble; Bits 4–31 need an even number of ones.        |
 
-![](diagrams/aes3-subframe.drawio.png)
+![AES3 Subframe structure](diagrams/aes3-subframe.drawio.png "AES3 Subframe structure")
 
 The preamble can be one of three values:
 
@@ -143,11 +148,20 @@ The preamble can be one of three values:
 | X or M |        11100010       |        00011101       | Marks a word for channel A (left), besides at the start of an audio block |
 | Y or W |        11100100       |        00011011       | Marks a word for channel B (right).                                          |
 
+#### Channel status word
+
+Between the AES3 and S/PDIF standards, the contents of the 192-bit channel status word differ significantly, although they both agree that the first channel status bit distinguishes between the two 🤝. In the case of AES3, the standard describes, in detail, the function of each bit.
+
+Broadly speaking, the channel status word indicates the type of data, has information about the clocks and various metadata such as channel origin/destination.
+
+I wont go into more detail in this article mainly because it's mostly irrelevant for ultranet 🧐. 
+For AES3 you can find the full format in the `EBU Tech 3250-2004` document. For consumer S/PDIF it's a bit more blurry but the english wikipedia article has a nice table 📅.
+
 #### Practical example 
 
 That's a lot to take in, so let's look at a practical example from my logic analyzer:
 
-![Logic analyzer capture of an AES3 signal](images/DSView_2025-03-19_16-07-30_cee0854c-4d4e-4325-bd1f-56633cf9dca8.png)
+![Logic analyzer capture of an AES3 signal](images/DSView_2025-03-19_16-07-30_cee0854c-4d4e-4325-bd1f-56633cf9dca8.png "Logic analyzer capture of an AES3 signal")
 
 Let's see what we can figure out:
 - This subframe starts with the B preamble, this tells us that it's the **start of an audio block** and that it's the **left channel** left.
@@ -205,7 +219,7 @@ That means 2 out 4 pairs are used for audio, and leaves 2 pairs for power, which
 
 Earlier I briefly talked about the AES3 electrical specifications. Again the `EBU Tech 3250-2004` document comes to the rescue, there is a whole section on differential pairs and how AES3 should be wired 🔌:
 
-![Simplified example of the AES3 circuit ](diagrams/aes-specs.drawio.png)
+![Simplified example of the AES3 circuit](diagrams/aes-specs.drawio.png "Simplified example of the AES3 circuit")
 
 Here are a few other important characteristics that have to be respected:
 > The interconnecting cable shall be balanced and screened (shielded) with nominal characteristic impedance of 110 Ohms at frequencies from 0.1 to 128 times the maximum frame rate.
@@ -239,7 +253,7 @@ This seems pretty good, but writing this article I did notice that the common-mo
 
 The [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf) also has a brother, the [AM26LV31](https://www.ti.com/lit/ds/symlink/am26lv31.pdf) a `Low-Voltage High-Speed Quadruple Differential Line Driver` which has just about the same specs but goes into the other direction:
 
-![AM26LV31 Logic diagram](images/chrome_2025_03_20_11-27-50_OS4d4oYBDK.png)
+![AM26LV31 Logic diagram](images/chrome_2025_03_20_11-27-50_OS4d4oYBDK.png "AM26LV31 Logic diagram")
 
 > While writting this article I say things as tho they are obvious and the only option. Truth is until very late into the project I was extremly unsure about the electronics. At the time, I was struggling getting a signal in/out from real hardware and I was suspecting these circuit more and more.
 
@@ -283,7 +297,7 @@ But wait, this still leaves 8 channels, so how do you do this? Well, 48Khz is fo
 
 Okay, enought guessing: it would seem that Ultranet basically is AES3 running at 192Khz with the 8 channels multiplexed together. 
 
-![Ultranet frame structure](diagrams/ultranet-block-structure.drawio.png)
+![Ultranet frame structure](diagrams/ultranet-block-structure.drawio.png "Ultranet frame structure")
 
 You'll see later why I think that something fishy 🐟 is going on and that there is more to channel ordering than this, but it's the basic idea!
 
@@ -299,93 +313,196 @@ And that's it, really. Behringer created a very elegant solution 😎 stretching
 
 ## Building a dev-board
 
-I decided that my first step would be to design a prototype development board where I could easily explore different avenues before going straight into a final-ish design. This approach will allow me to test various configurations and functionalities without committing too much time or resources upfront.
+I decided that my first step would be to design a prototype development board 🦾 where I could easily explore different avenues before going straight into a final design. This approach allows me to test various configurations and functionalities without committing too much time or resources upfront.
 
-Where to start? A microcontroller seems like an good choice, but dealing with the specific signals required for this project is impractical on traditional MCUs (not to mention latency issues). While it might be possible to implement everything using a standard MCU, it would most likely require a specialized digital interface chip (DIX) such as the AK4114. Given these constraints and my interest in exploring new technologies, This was the perfect project to finally start working with FPGAs.
+Where to start? A microcontroller 📟 seems like a good choice, but dealing with the specific signals required for this project is impractical on a traditional MCU (not to mention potential latency issues). While it might be possible to implement everything using a standard MCU, it would most likely require a specialized 👷 digital interface chip (DIX) such as the AK4114. Given these constraints and my interest in exploring new technologies, this was the perfect project to finally start working with FPGAs.
 
-FPGAs have been on my radar for quite some time now but never had a practical use case until now. Shifting bits around is exactly what an FPGA does best! By using an FPGA, I can implement complex digital logic directly in hardware, which offers significant advantages over software-based solutions when it comes to speed and efficiency.
+A mention must also be given to the [XMOS series of ICs](https://www.xmos.com/) ‼️. This is what Behringer is using in their Ultranet products (specifically the [XL216-512-TQ128](https://www.xmos.com/download/XL216-512-TQ128-Datasheet(1.16).pdf) in the P16-M). XMOS chips are weird 🫠 (in a good way) they are multicore microcontrollers dedicated to audio processing which means they have many peripherals related to audio as well as reference implementations. 
+
+XMOS chips are something that I definitively want to try someday 🤔 but FPGAs have been on my radar for quite some time now, I never had a practical use case until now. 
+
+This project can be boiled down to shifting bits around, which is precisely what an FPGA does best! By using an FPGA, I can implement complex digital logic directly in hardware, which offers significant advantages over software-based solutions when it comes to speed.
+
+However, as I never dealt with FPGAs before, this is project is a bit of a long shot 🏹, but for hobby projects I almost always work like that, so let's get started!
 
 ### But which FPGA
 
-FPGA characteristics are far and wide; they range from tiny FPGAs capable of running very simple tasks to monstrous devices that can handle hundreds of gigabits of data per second. 
+FPGA characteristics are far and wide; they range from tiny FPGAs capable of running basic tasks to monstrous devices that can handle hundreds of gigabits of data per second 🌐. 
 
-Given my project requirements, I need something that is powerful enough to receive and transmit two AES3 streams at 192 kHz, I also want something powerfull enought in case I want to do fancier stuff in the future.
+Given my project requirements, I need something that is powerful enough to :
+ - Receive and transmit two AES3 streams at 192 kHz
+ - Handle at least 4 stereo I2S inputs
+ - Handle at least 4 stereo I2S outputs
+
+I also want something powerful enought in case I want to do fancier stuff like mixing/equalizer/filters in the future 🎚️.
 
 So it mainly came down to what I could get on a devboard for cheap and fast, there are two options I considered:
   - [Arduino MKR Vidor 4000](https://docs.arduino.cc/hardware/mkr-vidor-4000/)
     - This board uses the Intel Cyclone 10CL016 FPGA. 
     - It offers an integrated ARM Cortex-M0+ microcontroller and a full suite of onboard peripherals, making it versatile for various applications. 
     - The Cyclone 10CL016 is capable of handling moderate complexity tasks and has sufficient resources to manage the AES3 streams efficiently. [It can even do SDI with some help](https://blog.tempus-ex.com/pro-video-with-arduinos-an-intro-to-sdi-video-and-pcb-fab/)
+    - It's what Dr. Nöding successfully used in his project.
   - [SiPEED Tang Nano 9K](https://wiki.sipeed.com/hardware/en/tang/Tang-Nano-9K/Nano-9K.html)
     - This board uses the Gowin GW1NR-9 FPGA. 
     - It provides a cost-effective solution with an integrated USB interface, making it easy to program and debug. 
-    - The GW1NR-9 FPGA is smaller in size but still offers enough logic resources for my project's requirements.
+    - The GW1NR-9 FPGA is smaller but still offers enough logic resources for my project's requirements.
+    - Thanks to its price it's a pretty popular option among hobbyists.
 
-In the end, despite that the HDL was successfully tested on the Arduino MKR Vidor 4000, I decided to proceed with the SiPEED Tang Nano 9K due to its cost-effectiveness, ease of use, robust community support, and adequate performance for my project's needs. This choice will allow me to focus on developing the core FPGA functionality without unnecessary complications.
+In the end, despite that the RTL I'm basing this project upon was successfully tested on the  Vidor 4000, I decided to proceed with the Tang Nano 9K due to its cost-effectiveness💸, ease of use, and adequate performance for my project's needs. This choice allows me to focus 🎯 on developing the core FPGA functionality without the unnecessary complications of having to use the Arduino IDE alongside the Quartus Prime IDE.
 
-### Analog domain
-
-When it comes to handling audio signals within the project, there are numerous options available. You can use dedicated DACs (Digital-to-Analog Converters) and ADCs (Analog-to-Digital Converters), or you can opt for CODECs (Combined Codec and Modulator), each with its own advantages. However, in this case, the choice came down to familiarity with the specific chips and ease of configuration. Given that both the PCM1808 and PCM5102A are well-documented and widely used components by both enthousiasts and professionals, they provide a reliable foundation for my project requirements.
-
-The Analog-to-Digital Conversion (ADC) part, is using the [PCM1808](https://www.ti.com/lit/ds/symlink/pcm1808.pdf). This device is a high-quality single-ended, analog-input 24-bit ADC capable of operating at up to 96 kHz sample rate in stereo mode.
-
-For the Digital-to-Analog Conversion (DAC) part, I opted for the [PCM5102A](https://www.ti.com/lit/ds/symlink/pcm5102a.pdf). This device is a high-performance audio stereo DAC with an integrated PLL (Phase-Locked Loop), capable of handling up to 384 kHz sample rates and supporting 32-bit PCM interfaces. 
-
-![Photo of the ADC/DAC part of the devboard](images/chrome_2025-03-21_22-20-42_7eb74f57-b6d9-45b3-abed-5aa626c6f3ed.png)
-
-{{<todo>}} Annotation needed on images {{</todo>}}
-
-### Clocks
-
-Clock signals are the heartbeat of any digital circuit, providing a consistent timing reference that ensures all operations within the system occur in harmony. Without precise clock signals, components like microcontrollers and FPGAs would operate chaotically, leading to data corruption and unreliable performance. 
-
-The Tang 9k has a 27MHz crystal on board and two PLLs on-chip, which could theoretically be used to generate the "master-clock".
-
-However, after conducting preliminary tests before designing the PCB, I found it challenging to achieve precise clock generation from these on-chip resources. The internal PLLs did not provide the exact frequencies needed for audio processing requirements, and configuring them was a bit complex.
-
-Given that I simply didn't want to deal with this, I decided to use a dedicated clock generation chip, specifically the [PLL1707](https://www.ti.com/lit/ds/symlink/pll1707-q1.pdf).
-This chip is awesome and a perfect example of "don't re-invent the wheel". For a few bucks more, it's an excellent choice for generating precise and stable clock signals, especially since it's designed for audio applications. One of its key features is its ability to generate frequencies up to 512 (768 actually) times the sampling frequency, which means it can produce a 24.576 MHz clock signal (48kHz * 512) exactly as needed for my project's requirements.
-
-For internal operations within the FPGA that require faster speeds, instead of deriving from the 27MHz clock, I utilized this 24.576 MHz signal and multiplied it by 10 to achieve higher-frequency clock signals for internal processing tasks. 
-
-![Photo of the clock on the devboard](images/chrome_2025-03-21_23-38-13_b1dc05e2-14cb-469a-bd8c-4cdf0070992f.png)
-
-{{<todo>}} Annotation needed on images {{</todo>}}
 
 ### I/O
 
-For I/O capabilities, I went all in and included a wide range of functionalities that would make this development board versatile and usefull for multiple projects. Below are the key components I integrated into the design:
-  - Of course there is the 8 input and 8 output audio channels. The second part of this projet will probably have footprints for 16in/16out but I think that 8 is enough for now. Doing it this way, I can send or receive a full half of an ultranet stream.
-  - As I mentioned in the very beginning, the end goal of this project is to run it over fiber so I decided to incorporate an SFP cage along with appropriate line [driver](https://www.ti.com/product/SN65LVDT2/part-details/SN65LVDT2DBVR) and [receiver](https://www.ti.com/product/SN65LVDS1/part-details/SN65LVDS1DBVR). 
-  - I also included footprints for DLT1150R and DLT1150T Toslink connectors. These optical audio connectors support up to 16 Mbps data transfer rates and provide an additional layer of flexibility for connecting various audio devices. 
-  - Finally, the star feature of this project is the inclusion of ultranet transmit and receive ports. 
+As this, a devboard that I want to potentially re-use in other projects ♻️, I went all in and included a wide range of connectivity options that would make this board versatile enought.
 
-{{<todo>}} Needs re-wording, this is crap {{</todo>}}
+Instead of implementing the 16 inputs and 16 outputs that Ultranet uses, which would render this already big pcb even bigger. I opted to implement only half ✂️, which is good enought for development purposes as I can still receive one of the AES3 streams in its entirety.
 
-![Photo of the devboard IOs](images/chrome_2025-03-21_23-51-11_a8d58eee-1db8-4792-a731-0e615417a9ff.png)
+The second part of this project will probably have some way to get the full 16 channels, but I think that 8 is enough for now anyway 🤷‍♂️. 
 
-{{<todo>}} Better photo / annotation {{</todo>}}
+At the very beginning, I mentioned that the end goal of this project is to run it over fiber 🔦, so I decided to incorporate an SFP cage along with the appropriate line [driver](https://www.ti.com/product/SN65LVDT2/part-details/SN65LVDT2DBVR) and [receiver](https://www.ti.com/product/SN65LVDS1/part-details/SN65LVDS1DBVR). 
+
+> If you want to read more about SFP/SFP+ modules you can read the chapter I wrote on it for my [3G-SDI to fiber project](https://blog.thestaticturtle.fr/diy-opensource-bidirectional-sdi-to-fiber-converter/#sfp--sfp)
+
+I also included footprints for DLT1150R and DLT1150T Toslink connectors 🔦. These optical audio connectors support up to 16 Mbps data transfer, so I can't pass Ultranet on them, but they provide an additional layer of flexibility 🤸‍♂️ for connecting various audio devices using the "normal" implementation of AES3. And who knows, maybe I'll implement ADAT someday.
+
+Finally, the star ⭐ feature of this project is the inclusion of Ultranet transmit and receive ports with the isolation transformers and line driver/receiver discussed before. 
+
+As a last-minute touch, I added several status LEDs 💡 and three buttons on the 1.8v GPIO port of the tang 9k which I didn't want to use for anything else.
+
+![Render of the devboard](images/chrome_2025-03-21_23-51-11_a8d58eee-1db8-4792-a731-0e615417a9ff.png "Render of the devboard")
+
+### Analog domain
+
+When it comes to handling audio signals of the project 🔊, there are multiple options available. You can use dedicated DACs (Digital-to-Analog Converters) and ADCs (Analog-to-Digital Converters), or you can opt for CODECs (ADC+DAC combined generally with some additional features), each with its own advantages ⚖️. 
+
+However, in this case, using a codec is a terrible choice 👎. CODECs typically share the same reference clocks between the ADC and DAC part. 
+This doesn't work for my application because while I generate the master clock for the transmit side, the decoder recovers it from the AES3 stream. In theory, they are the same but in practice various factors will slightly influence the clock speed 🕝.
+
+While I'm sure it's possible to implement some sort of sample rate synchronization, I opted for the much simpler option of using dedicated ADCs and DACs each with their clocks.
+
+The analog to digital converter I choose is the [PCM1808](https://www.ti.com/lit/ds/symlink/pcm1808.pdf) 👈. This device is a high-quality single-ended, analog-input 24-bit ADC capable of operating at up to 96 kHz sample rate in stereo mode.
+
+The digital to analog converter I went for is the [PCM5102A](https://www.ti.com/lit/ds/symlink/pcm5102a.pdf) 👈. This device is a high-performance audio stereo DAC with an integrated PLL (meaning I don't have to generate the master clock), capable of handling up to 384 kHz sample rates and supporting 32-bit PCM interfaces. 
+
+The choice of ICs came down to familiarity ✨ with the specific chips and ease of configuration. Given that both the PCM1808 and PCM5102A are well-documented and widely used components by both enthusiasts and professionals, they provide a reliable foundation for my project requirements. 
+
+Compared to other ICs, these are configured only by pin strapping 🔌 this means it's easier to troubleshoot, and I don't need to implement another protocol like I2C or SPI in the FPGA just to configure them.
+
+#### ADC: PCM1808
+
+The schematic of the ADC is almost straight out of the typical application schematic provided in the datasheet. The datasheet does mention that in certain application an additional antialiasing filter could be required. But this is a prototype with the main goal of getting any sound at all 🔊, not necessarily a high-quality one.
+
+![Schematic of the ADCs](images/chrome_2025-03-29_23-14-42_8353437c-cd1a-4421-9d1d-31f51fe5f33e.png "Schematic of the ADCs")
+
+The ``FMT`` pin is tied to 3.3V for all ICs which tells the ADC to send data in the left-justified format. The other option would be I2S, neither format is the perfect as it depends on the implementation and simply changes the way the data is sent. Simply put, I2S mode offsets the data by one BCLK cycle which is a bit more annoying to deal with.
+
+| FORMAT NO. | FMT (Pin 12) | FORMAT                 |
+|------------|--------------|------------------------|
+| 0          | Low          | I2S, 24-bit            |
+| 1          | High         | Left-justified, 24-bit |
+
+The other two strapping pins (``MD1`` & ``MD0``) control whether the IC operates in master or slave mode. 
+The schematic on top is the one from the second ADC which handles channel 3 & 4. The first ADC is almost identical 🪞. It simply has additional test pads on these pins that allow me to easily change this behavior.
+
+This leaves me the flexibility of not needing to implement the word clock & bit clock dividers in the FPGA. 
+
+| MD1 (PIN 11) | MD0 (PIN 10) | INTERFACE MODE                                    |
+|--------------|--------------|---------------------------------------------------|
+| Low          | Low          | Slave mode (256 FS, 384 FS, 512 FS autodetection) |
+| Low          | High         | Master mode (512 FS)                              |
+| High         | Low          | Master mode (384 FS)                              |
+| High         | High         | Master mode (256 FS)                              |
+
+
+In the end, I did use slave mode because of one very specific line of the datasheet that you could easily miss:
+
+> **7.3.5.1.1 Master Mode**<br>
+> In master mode, BCK and LRCK work as output pins, timing which from the clock circuit of the PCM1808 device controls these pins. The frequency of BCK is constant at 64 BCK/frame.
+>
+> **7.3.5.1.2 Slave Mode**<br>
+> In slave mode, BCK and LRCK work as input pins. The PCM1808 device accepts 64-BCK/frame or 48-BCK/frame format (only for a 384-fS system clock), not 32-BCK/frame format.
+
+Typically, you would expect a 24 bit ADC to use 48 cycles but the PCM1808 offers the possibility of using a 64 cycle bit clock 🎉. This significantly simplifies the clock generation and also allocates me a bit of time to process the data because I get an "extra" 8 clock cycle per channel to move data around.
+
+#### DAC: PCM5102A
+
+Once again, the schematic of the DAC is almost straight out of the typical application schematic provided in the datasheet 📋.
+
+![Schematic of the DACs](images/chrome_2025-03-29_23-14-10_7d0331ff-3852-410a-b5e0-3ba9e8513d5f.png "Schematic of the DACs")
+
+The ``FMT`` pin is (unfortunately 🤦‍♂️) set to use the I2S format. 
+
+Additionally, this DAC has extra pins like the ``FLT`` pin which controls the filter used (normal latency [FIR](https://en.wikipedia.org/wiki/Finite_impulse_response) or low latency [IIR](https://en.wikipedia.org/wiki/Infinite_impulse_response)) or the ``DEMP`` pin which enables the de-emphasis when used at sampling rate of 44.1 kHz.
+
+It also has the ``XSMT`` to allow external devices to mute the DAC with a simple binary signal 🔇. The datasheet provides a good example of how to use this pin to mute the signal in case of an "unplanned shutdown" or under-voltage condition which will avoid (or at least reduce) the dreaded "pop" sound 💥.
+
+#### PCB
+
+Just like for the schematic, the PCB layout is practically the same as the datasheets.
+
+You will notice the fuckload of test points 🚀 (some being outside the screenshot and always accompanied by their ground point 🌱). This is used to easily connect my logic analyzer and facilitate debugging.
+
+![Render of the ADC/DAC part of the devboard](images/chrome_2025-03-21_22-20-42_7eb74f57-b6d9-45b3-abed-5aa626c6f3ed.png "Render of the ADC/DAC part of the devboard")
+
+### Clocks
+
+Clock signals ⏱️ are the heartbeat of any digital circuit, providing a consistent timing reference that ensures all operations within the system occur in harmony. Without precise clock signals, systems would operate chaotically, leading to data corruption and unreliable performance. 
+
+The Tang 9k has a 27MHz crystal 🏃‍➡️ on board and two PLLs on-chip, which could theoretically be used to generate the "master-clock" needed for the audio ICs.
+However, after conducting preliminary tests before designing the PCB, I found it challenging 😵‍💫 to achieve precise clock generation from these on-chip resources. The internal PLLs did not provide the exact frequencies required for audio processing requirements, and configuring them was a bit complex.
+
+Given that I'm lazy 🥱, at some point I simply didn't want to deal with this anymore, I decided to use a dedicated clock generation chip, specifically the [PLL1707](https://www.ti.com/lit/ds/symlink/pll1707-q1.pdf).
+
+I can't stress how awesome this chip is 🤩. It's a perfect example of "don't re-invent the wheel". For a few bucks more, it's an excellent choice to offload the generation of a precise and stable clock signal, especially since it's specifically designed for audio applications. One of its key features is its ability to generate frequencies of 512 (up to 768 actually) times the sampling frequency, which means it can produce the 24.576 MHz clock signal (48kHz * 512) needed for my project.
+
+For internal operations within the FPGA that require faster speeds, instead of deriving from the 27MHz clock, I utilized this 24.576 MHz signal and multiplied it by 10 with a PLL to achieve higher-frequency clock signals for internal processes 🧩. 
+
+#### Schematic 
+
+By now you should get the idea. I read the datasheet and copied and pasted the schematic 😅. I'm kidding of course, generally I read it through at least once before drawing it 🤡.
+
+![Schematic of the PLL1707](images/chrome_2025-03-30_00-46-45_dc090ce0-65c0-4d49-b848-d6e82b597c5e.png)
+
+The chip is configured to use the "Double sampling rate" mode (``SR`` pin) for a 96Khz sampling frequency (``FS1`` & ``FS2`` pins) plus ``CSEL`` set to high. This configuration gives me the following clocks:
+
+| Clock | Frequency   |
+|-------|-------------|
+| SCKO0 | 33.8688 MHz |
+| SCKO1 | 24.576 MHz  |
+| SCKO2 | 24.576 MHz  |
+| SCKO3 | 36.864 MHz  |
+| MCKO1 | 27 MHz      |
+| MCKO2 | 27 MHz      |
+
+#### PCB
+
+Unfortunately, the datasheet doesn't provide a typically pcb layout 😕, thankfully this IC is simple to route so it wasn't a big issue. 
+Again, there are a bunch of test points to facilitate debugging.
+
+![Render of the clock of the devboard](images/chrome_2025-03-30_04-51-24_33822486-2869-4f0c-981e-7a885210ef3d.png "Render of the clock of the devboard")
 
 ### Board bring-up & mistakes
 
-The bring-up is the process that involves initial testing the board to ensure everything function correctly. This includes setting up power, verifying analog connections, and ensuring digital interfaces work as intended.
+The bring-up ⚡is the process involving initial testing the board to ensure everything functions correctly. This includes setting up power, verifying analog connections, and ensuring digital 📱interfaces work as intended.
 
-One of the first things I noticed is that when I plugged my logic analyser on the board, was that there was absolutly no activiy on the clocks for the analog side. This is wired because the mast clock was present but the first PCM1808 is in charge of generating the word clock and bit clock. Turns out, I had forgotten to connect the 3.3VA and 5VA to their respective power lines. These connections were essential for powering the ADCs and DACs.
+When I first plugged my logic analyzer into the board, I noticed that there was absolutely no activity on the data lines of the analog side 😵. This is weird because the master clock (and the derived word & bit clock) were present, and the ADC should be autonomous 🤖. 
 
-Thankfully, as I had plastered the board with test points and 0-ohm resistors, the fix was really easy.
+Turns out, I connected the 3.3VA and 5VA supply lines to the ADCs and DACs, but I completely forgot to actually supply power to these connections 🔌 which is of course, essential for the chip to power up. Thankfully, as I had plastered the board with test points and 0-ohm resistors, the fix was realtively effortless 👌.
 
-Further down in the devellopment, I also needed to change the configuration of the PCM5102A from the I2S format to the left justified format which is a bit easier to deal with when you just began working with FPGAs and don't grasp all the concepts yet.
+During the first reception test I noticed that while I was sending data and the right clocks to the DAC, I wasn't getting any audio 🔇. It turns out that the XSMT pin cannot be left floating, so I had to add a pull-up. As luck had it, the XMST line ran directly next to the 3.3V supply, so I could simply scrape the solder mask and solder a small resistor. You wouldn't even know it's a bodge. 😅
 
-An other less important issue is that in my haste to get his devboard out the door, I swapped the left and right channels of the DACs.
-Continuing with issues on the DAC side, I also messed up the the output filters which reduced the audio quality quite a bit!
+Further down in the development, I also needed to alter the configuration of the PCM5102A from the I2S format to the left-justified format, which was a bit easier to deal with 😮‍💨.
 
-Appart from this, everything surprisingly worked just fine.
+Another less important issue is that in my haste to get his devboard out the door, I swapped 🔀 the left and right channels of the DACs.
+Continuing with issues on the DAC side, I also messed up the output filters 🎛️ which reduced the audio quality quite a bit!
 
-{{<todo>}} Photo with bodge annotation {{</todo>}}
+Apart from these relatively minor issues, everything surprisingly worked just fine.
+
+![Fixed PCB](images/DCS03992_Bodges.JPG "&quot;Fixed PCB&quot;")
 
 ## Blind implementation
 
-Ok, let's start writting code (well for FPGAs it's called HDL). 
+Ok, let's start writting code (well for FPGAs it's called RTL). 
 
 At this point I did not have access to any hardware that supports ultranet so I started by writting a blind implementation meaning I wrote bothe the transmitter and receiver parts at the same time validating that they were working by connecting them together and looking a logic analyser captures.
 
@@ -425,8 +542,6 @@ aes_bclk <= mclk;
 
 The `I2S Quad deserializer` block is in charge of reading the bits of the serial audio data in sync with the different clocks.
 The special thing about this block is that it takes four different serial input and integrates the demuxer to output the eight different 24bit vectors.
-
-Even tho the PCM1808 is a 24bit ADC, it will "happilly" accept 32 cycles, this significantly simplifies the clock generation and also allocate me a bit of time to process it.
 
 The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their soul purpuse is to detect a rising/falling edge. Here is an example for the bit clock:
 ```vhdl
