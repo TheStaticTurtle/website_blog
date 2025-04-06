@@ -35,23 +35,23 @@ This is a stupidly long article, it details the different phases thoroughly, you
 In my last article about the open-source SDI to fiber converter, I briefly talked about my brand new MPO-12 cable with 12 OM3 fibers 🔦.
 I've also hinted that I might use the two spare fibers I had for audio 🔊.
 
-These audio channels will be used mostly as side-channels, stuff like LTC time code, backup sound pickup, intercom (maybe)
+These audio channels will be used mostly as side-channels, stuff like LTC time code, backup sound pickup, and (maybe) intercom
 
 When I started this project, there were four "mainstream" ways I thought I could tackle this:
 
-- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's professional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3)). It's a digital audio interface transmitted over various connectors, or even (plastic) fiber-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
+- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's professional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3))<br>It's a digital audio interface transmitted over various connectors, such as (plastic) fiber-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
     - The main upside is that there are plenty of cheap modules that already exist to convert analog to digital and vice versa
     - The main downside is that it is only two channels per link 🤔
     <br><br>
-- [ADAT Lightpipe](https://en.wikipedia.org/wiki/ADAT_Lightpipe). Lightpipe uses the same connection hardware as S/PDIF: fiber optic cables (hence its name) to carry data, with Toslink connectors and optical transceivers at either end. The main difference stems from the fact that ADAT supports up to 8 audio channels at 48 kHz, 24 bits.
+- [ADAT Lightpipe](https://en.wikipedia.org/wiki/ADAT_Lightpipe)<br>Lightpipe uses the same connection hardware as S/PDIF: fiber optic cables (hence its name) to carry data, with TOSLINK connectors and optical transceivers at either end. The main difference stems from the fact that ADAT supports up to 8 audio channels at 48 kHz, 24 bits.
     - The main upside is that 8 channels is pretty good 
-    - The main downside is that from some quick research there isn't a recent IC or implementation that exists and devices that implement the protocol cost far too much for my use.
+    - The main downside is that from some quick research, there isn't a recent IC or implementation that exists and devices that implement the protocol cost too much for my use.
     <br><br>
-- [Multichannel Audio Digital Interface (MADI) / AES10](https://en.wikipedia.org/wiki/MADI). This interface supports serial digital transmission over coaxial cable or fiber-optic lines of 28, 56, 32, or 64 channels and sampling rates to 96 kHz and beyond with an audio bit depth of up to 24 bits per channel.
+- [Multichannel Audio Digital Interface (MADI) / AES10](https://en.wikipedia.org/wiki/MADI) <br>This interface supports serial digital transmission over coaxial cable or fiber-optic lines of 28, 56, 32, or 64 channels and sampling rates to 96 kHz and beyond with an audio bit depth of up to 24 bits per channel.
     - The main upside is the number of channels and the fact that it already runs over multimode fiber 🔦. 
     - The main downside is that it's even worse than ADAT, there isn't a recent/easy implementation that exists and devices that implement the protocol have a prohibitive cost for hobbyist use.
     <br><br>
-- [Dante](https://en.wikipedia.org/wiki/Dante_(networking)) / [AES67](https://en.wikipedia.org/wiki/AES67). This is a combination of software, hardware, and network protocols that delivers uncompressed, multichannel, low-latency digital audio over a standard Ethernet network 🌐 using Layer 3 IP packets.
+- [Dante](https://en.wikipedia.org/wiki/Dante_(networking)) / [AES67](https://en.wikipedia.org/wiki/AES67)<br>This is a combination of software, hardware, and network protocols that delivers uncompressed, multichannel, low-latency digital audio over a standard Ethernet network 🌐 using Layer 3 IP packets.
     - The main upside is that there are plenty of channels (max 512) 📈, it's easy to **use**, and it's implemented on countless devices
     - The main downside is that implementing it to get low latency ⏱ will be a nightmare
 
@@ -64,12 +64,12 @@ Then the universe dropped this gem 💎 from Christian Nöding:
 
 {{< og "https://www.youtube.com/watch?v=c7VGjq9yp8g" >}}
 
-And this is really what kickstarted the whole thing. From the video, it seemed that Ultranet, a protocol that I have seen but never used, is somewhat based on two AES3 signals each containing 8 channels.
+This is what kickstarted the whole thing. From the video, it seemed that Ultranet, a protocol that I have seen but never used, is somewhat based on two AES3 signals each containing 8 channels.
 This would mean either 8 channels bidirectional or 16 uni-directional channels on two fiber 🤩. 
 Moreover, I do have (limited) access to hardware that can send and receive Ultranet so I can easily test my implementation.
 But the most important thing is that Christian proved it was possible to do it 🥳!
 
-*Note: for the story's sake, events, and discoveries aren't necessarily in chronological order.*
+*Note: for the story's sake, events and discoveries aren't necessarily in chronological order.*
 
 ## Research
 
@@ -79,15 +79,15 @@ As always for big projects, I started by doing some research 📜, this part als
 
 I mentioned that Ultranet is based on AES3, also known as AES/EBU so let's start there, how the hell does this work, and where do we start?
 
-The [Audio Engineering Society (AES)](https://www.aes.org/), is a professional society 🏢 devoted exclusively to audio technology. Alongside other groups like the [European Broadcasting Union (EBU)](https://www.ebu.ch/) 🎥 they standardize different technologies in the audio/broadcasting area. 
+The [Audio Engineering Society (AES)](https://www.aes.org/), is a professional society 🏢 devoted exclusively to audio technology. Alongside other groups like the [European Broadcasting Union (EBU)](https://www.ebu.ch/) 🎥 they standardize different technologies in the audio/broadcasting industry. 
 
-This article will talk exclusively about AES3. Newer standard are behind a paywall, fortunately AES3 is as older than me, it was first published in 1985 and was revised in 1992, 2003 and 2009. That means that we can find semi-recent leaked PDFs without much difficulty.
+This article will talk exclusively about AES3. Newer standards are behind a paywall. Fortunately AES3 is as older than me. It was first published in 1985 and was revised in 1992, 2003 and 2009. That means that we can find semi-recent leaked PDFs without much difficulty.
 
 Moreover, there are a bunch of other documents linked to AES3 from which we can scoop up information:
-  - [AES/EBU EG](https://tech.ebu.ch/docs/other/aes-ebu-eg.pdf) - Engineering Guidelines - (The AES/EBU audio interface)
-  - [EBU Tech 3250-2004](https://tech.ebu.ch/docs/tech/tech3250.pdf) - Specification of the digital audio interface (The AES/EBU interface)
-  - [IEC60958](https://webstore.iec.ch/en/publication/62829) - Digital audio interface - Part 1: General
-  - AES-2id - Guidelines for the use of the AES3 interface
+  - [AES/EBU EG](https://tech.ebu.ch/docs/other/aes-ebu-eg.pdf) - ``Engineering Guidelines - (The AES/EBU audio interface)``
+  - [EBU Tech 3250-2004](https://tech.ebu.ch/docs/tech/tech3250.pdf) - ``Specification of the digital audio interface (The AES/EBU interface)``
+  - [IEC60958](https://webstore.iec.ch/en/publication/62829) - ``Digital audio interface - Part 1: General``
+  - AES-2id - ``Guidelines for the use of the AES3 interface``
 
 #### Electrical signals
 
@@ -122,7 +122,7 @@ All of these positive features come at the expense of clock speed 🏃‍♂️.
 
 Now that we know how to read the bits, let's talk about what those bits actually mean!
 
-AES3 is composed of what is called `Audio blocks` these audio blocks are composed of 192*`Frames` each frame contains 2*`Subframes` which in turns contain 32*`Time slots`
+AES3 is composed of what is called audio blocks, these audio blocks are composed of 192 frames, each frame contains 2 subframes, which in turns, contain 32 time slots.
 
 ![AES3 Block structure](diagrams/aes3-block-structure.drawio.png "AES3 Block structure")
 
@@ -154,8 +154,8 @@ Between the AES3 and S/PDIF standards, the contents of the 192-bit channel statu
 
 Broadly speaking, the channel status word indicates the type of data, has information about the clocks and various metadata such as channel origin/destination.
 
-I wont go into more detail in this article mainly because it's mostly irrelevant for ultranet 🧐. 
-For AES3 you can find the full format in the `EBU Tech 3250-2004` document. For consumer S/PDIF it's a bit more blurry but the english wikipedia article has a nice table 📅.
+I wont go into more detail in this article mainly because it's mostly irrelevant for Ultranet 🧐. 
+For AES3, you can find the full format in the `EBU Tech 3250-2004` document. For consumer S/PDIF it's a bit more blurry but the English Wikipedia article has a nice table 📅.
 
 #### Practical example 
 
@@ -165,11 +165,11 @@ That's a lot to take in, so let's look at a practical example from my logic anal
 
 Let's see what we can figure out:
 - This subframe starts with the B preamble, this tells us that it's the **start of an audio block** and that it's the **left channel** left.
-- We are going to consider that the auxiliary bits are used for audio. This gives us 0xadffff, if we change the bit order from LSB-first (AES3) to MSB-first 🔀 (what is generally used for audio) the 24bit **audio data is 0xffffb5**
+- We are going to consider that the auxiliary bits are used for audio. This gives us ``0xadffff``, if we change the bit order from LSB-first (AES3) to MSB-first 🔀 (what is generally used for audio) the 24bit **audio data is ``0xffffb5``**.
 - Even tho we have data the validity bit tells us that **this frame is invalid** 🛑 and that it shouldn't be played
-- Then comes the user bit with an undefined structure
+- Then comes the user bit with an undefined structure.
 - There is the channel status word, this tells us that the first bit of the word is **a 0 indicating S/PDIF data**
-- Finally the parity bit **is 0** because the number of **asserted bits in the 4-30 range** already are an **even number of 1s** 🧮
+- Finally, the parity bit **is 0** because the number of **asserted bits in the 4-30 range** already are an **even number of 1s** 🧮
 
 And that's it really, the M preamble will then be used for the rest of the left channel subframes and the W will be used for the right channel. 
 Then after 384 subframe, there will be another B preamble signaling a new block.
@@ -182,7 +182,7 @@ Now, how does Ultranet differ from AES3?
 
 #### What we know from product sheets:
 
-I read through the datasheets / quick guides from several Ultranet compatible devices from Behringer and its subsidiaries. Here is what is always present and important to this project:
+I read through the datasheets/quick guides from several Ultranet compatible devices from Behringer and its subsidiaries. Here is what is always present and important to this project:
 
 - **Digital Processing**
   - **A/D conversion:** 24-bit, 44.1 kHz / 48 kHz sample rate
@@ -201,10 +201,10 @@ Apart from the channel count, given the audio format & latency plus the fact tha
 
 #### Probing and reverse-engineering the electronics 🍑 
 
-As I said before, the work that Christian did is what kickstarted this project, at this point he already published his video and figured out that as Ultranet uses generic CAT5 cables which means they most likely that they also use standard wiring.
+As I said before, the work that Christian did is what kickstarted this project. At this point he already published his video and figured out that as Ultranet uses generic CAT5 cables, which means they most likely also use standard wiring.
 
-As it turns out (and we'll see why later in the protocol section), Ultranet does not send 16 channels down a single stream, instead, it sends 8 channels over two separate (but synchronized) streams.
-That means 2 out 4 pairs are used for audio, and leaves 2 pairs for power, which looks a lot like 100BASE-T with POE mode B 😅.
+As it turns out (and we'll see why later in the protocol section), Ultranet does not send 16 channels down a single stream. Instead, it sends 8 channels over two separate (but synchronized) streams.
+That means 2 out 4 pairs are used for audio and leaves 2 pairs for power, which looks a lot like 100BASE-T with POE mode B 😅.
 
 | Pin | Pair | Use for 100BASE-T<br>with POE mode B | Use for Ultranet |
 |:---:|:----:|--------------------------------------|------------------|
@@ -257,9 +257,9 @@ The [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf) also has a brothe
 
 > While writting this article I say things as tho they are obvious and the only option. Truth is until very late into the project I was extremly unsure about the electronics. At the time, I was struggling getting a signal in/out from real hardware and I was suspecting these circuit more and more.
 
-All of this uncertainty lead me down the path of trying to reverse-engineering the electrical side of a proprietary protocol with nothing but google images 🖼. After much research, I stumbled onto the [Klark Teknik DM80-Ultranet](https://www.thomann.fr/klark_teknik_dm80_ultranet.htm) an Ultranet expansion card for the [DM8000](https://www.klarkteknik.com/product.html?modelCode=0829-AAC). What was fascinating was the very nice, high resolution 🔍, top view of the pcb.
+All of this uncertainty lead me down the path of trying to reverse-engineering the electrical side of a proprietary protocol with nothing but Google Images 🖼. After much research, I stumbled onto the [Klark Teknik DM80-Ultranet](https://www.thomann.fr/klark_teknik_dm80_ultranet.htm) an Ultranet expansion card for the [DM8000](https://www.klarkteknik.com/product.html?modelCode=0829-AAC). What was fascinating was the very nice and high resolution 🔍 top view of the pcb.
 
-After loading the image into gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/), I managed to get the information I was looking for:
+After loading the image into Gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/), I managed to get the information I was looking for:
 
 {{<gallery>}}
 images/15667910.jpg
@@ -267,17 +267,17 @@ images/ultranet_hardware_2.png
 images/ultranet_hardware_1.jpg
 {{</gallery>}}
 
-The AES3 signals both go into a [SN74LVC1G04](https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf) `Single Inverter Gate` and a [SN74LVC1G125](https://www.ti.com/lit/ds/symlink/sn74lvc1g125.pdf) `Single Bus Buffer Gate` which gives a 5V differential signal. It then goes into what I assume to be filters, a protection diode, and a common mode choke, before going into either, the connector directly or through magnetics 🧲 (we can only guess here, but I think it goes straight to the connector).
+The AES3 signals both go into a [SN74LVC1G04](https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf) `Single Inverter Gate` and a [SN74LVC1G125](https://www.ti.com/lit/ds/symlink/sn74lvc1g125.pdf) `Single Bus Buffer Gate` which gives a 5V differential signal. It then goes into what I assume to be filters, a protection diode, and a common mode choke before going into either, the connector directly or through magnetics 🧲 (we can only guess here, but I think it goes straight to the connector).
 
 The input circuitry goes from the connector (again, maybe through magnetics, but I doubt it) through what I assume to be a common mode choke into what I guess is a pulse transformer and I didn't bother going further as I already had this working, and it worked for Dr. Nöding.
 
-After this evening, I was confident that the implementation that we'll see later was correct enought to work 😎!
+After this evening, I was confident that the implementation that we'll see later was correct enough to work 😎!
 
 #### Reverse-engineering the protocol
 
 So how would you send 16 channels of digital audio down a CAT5 cable?
 
-An important thing to remember is that while is its own unique thing, Ultranet is based on existing protocols and, from what I've seen, they try not to break ⛓ them too much.
+An important thing to remember is that while is its own unique thing, Ultranet is based on existing protocols and from what I've seen, they try not to break ⛓ them too much.
 
 From different photos of main boards of products that implement Ultranet, we can see a recurring pattern, there always seem to be two of the same ICs, the [AK4114](https://media.digikey.com/pdf/Data%20Sheets/AKM%20Semiconductor%20Inc.%20PDFs/AK4114.pdf). This IC is a `High Feature 192kHz 24bit Digital Audio Interface Transceiver` 🔊
 
@@ -295,7 +295,7 @@ From all of this, it seems that it's a bog-standard AES3/SPDIF receiver. Which m
 So how do you fit 16 channels 🗜 into the 192kHz the chip supports?  Well, you don't, as I mentioned before, there are two chips. <br>
 But wait, this still leaves 8 channels, so how do you do this? Well, 48Khz is for two channels, math tells us that `2 * 4 = 8` and that `48 * 4 = 192` that means it can fit, with some tinkering 🤔.
 
-Okay, enought guessing: it would seem that Ultranet basically is AES3 running at 192Khz with the 8 channels multiplexed together. 
+Okay, enough guessing: it would seem that Ultranet basically is AES3 running at 192Khz with the 8 channels multiplexed together. 
 
 ![Ultranet frame structure](diagrams/ultranet-block-structure.drawio.png "Ultranet frame structure")
 
