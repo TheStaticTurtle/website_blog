@@ -7,7 +7,7 @@ date: 2025-03-19T09:00:00.000Z
 image: "images/cover.jpg"
 tags:
   - electronics
-  - opensource
+  - open-source
   - diy
   - audio
   - concerts
@@ -81,7 +81,7 @@ I mentioned that Ultranet is based on AES3, also known as AES/EBU so let's start
 
 The [Audio Engineering Society (AES)](https://www.aes.org/), is a professional society 🏢 devoted exclusively to audio technology. Alongside other groups like the [European Broadcasting Union (EBU)](https://www.ebu.ch/) 🎥 they standardize different technologies in the audio/broadcasting industry. 
 
-This article will talk exclusively about AES3. Newer standards are behind a paywall. Fortunately AES3 is as older than me. It was first published in 1985 and was revised in 1992, 2003 and 2009. That means that we can find semi-recent leaked PDFs without much difficulty.
+This article will talk exclusively about AES3. Newer standards are behind a paywall. Fortunately, AES3 is as older than me. It was first published in 1985 and was revised in 1992, 2003 and 2009. That means that we can find semi-recent leaked PDFs without much difficulty.
 
 Moreover, there are a bunch of other documents linked to AES3 from which we can scoop up information:
   - [AES/EBU EG](https://tech.ebu.ch/docs/other/aes-ebu-eg.pdf) - ``Engineering Guidelines - (The AES/EBU audio interface)``
@@ -105,8 +105,8 @@ AES3 was designed primarily to support stereo [PCM](https://en.wikipedia.org/wik
 Biphase mark code, also known as differential Manchester encoding, is a method to transmit data in which the data 💾 and clock 🕓 signals are combined to form a single two-level self-synchronizing data stream. Each data bit is encoded by a presence or absence of signal level transition in the middle of the bit period (known as time slot for AES3), followed by the mandatory level transition at the beginning of the period. This also means that by design the encoding is insensitive to an inversion of polarity 🔀.
 
 There are two variants of BMC:
- - Transition on 1 which is the one used for AES3
- - Transition on 0 which is irrelevant for this project
+ - Transition on a 1 which is the one used for AES3
+ - Transition on a 0 which is irrelevant for this project
 
 Here is an example diagram representing how the signal behave, there is a transition on each solid line plus a transition on the dotted line if the bit is a one:
 
@@ -150,11 +150,11 @@ The preamble can be one of three values:
 
 #### Channel status word
 
-Between the AES3 and S/PDIF standards, the contents of the 192-bit channel status word differ significantly, although they both agree that the first channel status bit distinguishes between the two 🤝. In the case of AES3, the standard describes, in detail, the function of each bit.
+Between the AES3 and S/PDIF standards, the contents of the 192-bit channel status word differ significantly, although they both standards agree that the first channel status bit distinguishes between the two 🤝. In the case of AES3, the standard describes, in detail, the function of each bit.
 
 Broadly speaking, the channel status word indicates the type of data, has information about the clocks and various metadata such as channel origin/destination.
 
-I wont go into more detail in this article mainly because it's mostly irrelevant for Ultranet 🧐. 
+I won't go into more detail in this article mainly because it's mostly irrelevant for Ultranet 🧐. 
 For AES3, you can find the full format in the `EBU Tech 3250-2004` document. For consumer S/PDIF it's a bit more blurry but the English Wikipedia article has a nice table 📅.
 
 #### Practical example 
@@ -201,7 +201,7 @@ Apart from the channel count, given the audio format & latency plus the fact tha
 
 #### Probing and reverse-engineering the electronics 🍑 
 
-As I said before, the work that Christian did is what kickstarted this project. At this point he already published his video and figured out that as Ultranet uses generic CAT5 cables, which means they most likely also use standard wiring.
+As I said before, the work that Christian did is what kickstarted this project. At this point, he already published his video and figured out that as Ultranet uses generic CAT5 cables, which means they most likely also use standard wiring.
 
 As it turns out (and we'll see why later in the protocol section), Ultranet does not send 16 channels down a single stream. Instead, it sends 8 channels over two separate (but synchronized) streams.
 That means 2 out 4 pairs are used for audio and leaves 2 pairs for power, which looks a lot like 100BASE-T with POE mode B 😅.
@@ -290,7 +290,7 @@ Features include:
   - Up to 24bit Audio Data Format
   - Master Clock Outputs
 
-From all of this, it seems that it's a bog-standard AES3/SPDIF receiver. Which means that once again, Behringer didn't go too far into customizing the protocol 🔧.
+From all of this, it appears that it's a bog-standard AES3/SPDIF receiver. Which means that once again, Behringer didn't go too far into customizing the protocol 🔧.
 
 So how do you fit 16 channels 🗜 into the 192kHz the chip supports?  Well, you don't, as I mentioned before, there are two chips. <br>
 But wait, this still leaves 8 channels, so how do you do this? Well, 48Khz is for two channels, math tells us that `2 * 4 = 8` and that `48 * 4 = 192` that means it can fit, with some tinkering 🤔.
@@ -487,7 +487,7 @@ The bring-up ⚡is the process involving initial testing the board to ensure eve
 
 When I first plugged my logic analyzer into the board, I noticed that there was absolutely no activity on the data lines of the analog side 😵. This is weird because the master clock (and the derived word & bit clock) were present, and the ADC should be autonomous 🤖. 
 
-Turns out, I connected the 3.3VA and 5VA supply lines to the ADCs and DACs, but I completely forgot to actually supply power to these connections 🔌 which is of course, essential for the chip to power up. Thankfully, as I had plastered the board with test points and 0-ohm resistors, the fix was realtively effortless 👌.
+Turns out, I connected the 3.3VA and 5VA supply lines to the ADCs and DACs, but I completely forgot to actually supply power to these connections 🔌 which is of course, essential for the chip to power up. Thankfully, as I had plastered the board with test points and 0-ohm resistors, the fix was relatively effortless 👌.
 
 During the first reception test I noticed that while I was sending data and the right clocks to the DAC, I wasn't getting any audio 🔇. It turns out that the XSMT pin cannot be left floating, so I had to add a pull-up. As luck had it, the XMST line ran directly next to the 3.3V supply, so I could simply scrape the solder mask and solder a small resistor. You wouldn't even know it's a bodge. 😅
 
@@ -500,11 +500,13 @@ Apart from these relatively minor issues, everything surprisingly worked just fi
 
 ![Fixed PCB](images/DCS03992_Bodges.JPG "&quot;Fixed PCB&quot;")
 
-## Blind implementation
+## FPGA implementation
 
-Ok, let's start writting code (well for FPGAs it's called RTL). 
+Ok, let's start writing code (valid for FPGAs it's called RTL). 
 
-At this point I did not have access to any hardware that supports ultranet so I started by writting a blind implementation meaning I wrote bothe the transmitter and receiver parts at the same time validating that they were working by connecting them together and looking a logic analyser captures.
+When I started writing the implementation, I did not have access to any hardware that supports Ultranet, so I started by writing a blind implementation, meaning I wrote both the transmitter and receiver parts at the same time, validating that they were working by connecting them together and looking at logic analyzer captures.
+
+I also foolishly didn't start a git repository right away because at the beginning I was "just messing around". That means that the implementation shown here is mostly the final version for part 1.
 
 ### Transmitter
 
@@ -514,13 +516,13 @@ Here is a pretty good overview of how the transmitter works:
 
 #### Clock
 
-The `Clocks` block is in charge of deriving the required clock signals for differents parts of the module based on the master clock. It takes the 24.576 Mhz clock and generates the follwing clocks:
-- AES3 bit clock running at 24.576 Mhz (simply "buffered")
+The `Clocks` block is responsible for deriving the required clock signals for different parts of the module based on the master clock. It takes the 24.576 MHz clock and generates the following clocks:
+- AES3 bit clock running at 24.576 MHz (simply "buffered")
 - AES3 word clock running at 192Khz
 - I2S Bit clock running at 3.072 MHz
 - I2S Word clock running at 48Khz
 
-The process of dividing a clock is quite simple to do, you simply need a counter. Here is for example the process for the bit clock:
+The process of dividing a clock is simple to do, you simply need a counter. Here is for example the process for the bit clock:
 ```vhdl
 i2s_bit_clock: process(mclk)  begin
     if(rising_edge(mclk)) then
@@ -533,17 +535,17 @@ i2s_bit_clock: process(mclk)  begin
 end process;
 ```
 
-As I said the aes3 bit clock can simply be "buffered" like so:
+As I said, the aes3 bit clock can simply be "buffered" like so:
 ```vhdl
 aes_bclk <= mclk;
 ```
 
-#### I2S Deserialiser
+#### I2S Deserializer
 
-The `I2S Quad deserializer` block is in charge of reading the bits of the serial audio data in sync with the different clocks.
-The special thing about this block is that it takes four different serial input and integrates the demuxer to output the eight different 24bit vectors.
+The `I2S Quad deserializer` block is responsible for reading the bits of the serial audio data coming from the ADCs in sync with the different clock signals.
+The special thing about this block is that it takes four different inputs and already integrates the left/right demuxer to output the eight different 24bit vectors.
 
-The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their soul purpuse is to detect a rising/falling edge. Here is an example for the bit clock:
+The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their sole purpose is to detect a rising/falling edge. Here is an example for the bit clock:
 ```vhdl
 detect_bclk_edge: process(clk) begin
     if rising_edge(clk) then
@@ -561,8 +563,11 @@ detect_bclk_edge: process(clk) begin
     end if;
 end process;
 ```
-Then there is two processes, the firdt one is the one that makes the counters tick and more generally where the flow of data is "managed".
-The second one is the one that is reading the serial data on the positive edge of a bit clock into the appropriate buffer when told so by the first process.
+
+{{<todo>}}Explain edge detectors{{</todo>}}
+
+Then there are two processes, the first one is the one that makes the counters tick and more generally, where the flow of data is "managed".
+The second one is reading the serial data on the positive edge of a bit clock and shifting it into the appropriate buffer when told so by the first process.
 ```vhdl
 detect_sample: process(clk) begin
     if rising_edge(clk) then
@@ -634,11 +639,11 @@ get_data: process(clk) begin
 end process;
 ```
 
-#### Ultranet mux
+#### Ultranet muxer
 
-The `Ultranet mux` block has a very simple job, each time the AES3 word clock rises or falls it needs to increment a channel counter and output it. Additionally each time it see that new dta is rising it takes a "copy" of the input vectors.
+The `Ultranet mux` block has a simple job, each time the AES3 word clock rises or falls, it needs to increment the channel counter and output the data for said channel. Additionally, it takes a "copy" of the input vectors each time it sees that ``new_data`` is rising.
 
-The module starts with some edge detectors but the main logic is this one as you cna see it's pretty simple!
+Once again, the module starts with some edge detectors, but the main logic can be seen below. As you can see, it's pretty simple!
 ```vhdl
 process(clk) begin
     if (rising_edge(clk)) then
@@ -687,32 +692,412 @@ end process;
 
 #### AES3 Transmitter
 
-Here I can't take all the credit I heavilly based my work on the following S/PDIF transmitter project:
+Here I can't take much of the credit, I heavily based my work on the following S/PDIF transmitter project:
 
 {{< og "https://ackspace.nl/wiki/SP/DIF_transmitter_project" >}}
 
-But I adapted it to support the long 384-bit vector for the channel status as well as supporting the user bits and validity bit. Spoiler this is going to bite me in the ass later!
+But I adapted it to support the long 384-bit vector for the two channel statuses as well as supporting the user bits and validity bit. Spoiler: this is going to bite me in the ass later!
 
 ### Receiver 
+
+Here is the overview of how the receiver works:
+
+![Ultranet receiver overview](diagrams/receiver.drawio.png)
+
 #### AES3 Receiver
+
+I can't take credit for this block either, it's almost a copy-paste of the fantastic aes3rx project:
+
+{{< og "https://opencores.org/projects/aes3rx" >}}
+
+This block takes a very fast clock plus the aes3 input and spits out the recovered clock signals (bit clock & word clock), the sound data and the block start signal.
+
+It also output an "active" signal that can be used to indicate that a signal is being received.
+
 #### Clocks
-#### Ultranet Deserialiser
-#### Ultranet Demuxer
+
+Just like the transmitter, the `Clocks` block is responsible for deriving the I2S clock signals based on the AES3 clocks and bsync signal. It takes the 12.288 MHz bit clock and 192 kHz word clock and generates the following clocks:
+- I2S Bit clock running at 3.072 MHz
+- I2S Word clock running at 48Khz
+
+The clock dividers are a bit different from the ones used for the transmitter. First, I have edge detectors for `bsync`, `aes_bclk` and `aes_lrclk`. 
+
+Then the I2S bit clock divider is a standard divider with the addition of bsync check so that it resets to the correct state.
+```vhdl
+i2s_bit_clock: process(aes_bclk)  begin
+    if(rising_edge(aes_bclk)) then
+        -- Make sure the clock is properly synchronized at the block start
+        if(bsync_pos_edge = '1') then
+            i2s_bclk <= '1';
+            count_i2s_bclk <= 0;
+        else
+            -- Divide the AES3 bit clock to get the I2S bit clock 
+            count_i2s_bclk <= count_i2s_bclk + 1;
+            if(count_i2s_bclk = 1) then
+                i2s_bclk <= not i2s_bclk;
+                count_i2s_bclk <= 0;
+             end if;
+        end if;
+    end if;
+ end process;
+```
+
+The word clock is even more complex, instead of synchronizing on just the AES3 word clock and the bsync signal, I also make sure it's properly synchronized to the bit clock:
+```vhdl
+i2s_lr_clock: process(clk) begin
+    if(rising_edge(clk)) then
+        -- Make sure the clock is properly synchronized at the block start
+        if(bsync = '1') then
+            i2s_lrclk <= '0';
+            count_i2s_lrclk <= 0;
+        else
+            -- Make sure the word clock is properly synchronized to the bit clock
+            if(aes_bclk_neg_edge = '1' and aes_lrclk_pos_edge = '1') then
+                -- Divide the AES3 word clock to get the I2S word clock 
+                count_i2s_lrclk <= count_i2s_lrclk + 1;
+                if(count_i2s_lrclk = 1) then
+                    i2s_lrclk <= not i2s_lrclk;
+                    count_i2s_lrclk <=0;
+                end if;
+            end if;
+        end if;
+    end if;
+end process;
+``` 
+
+#### Ultranet Deserializer
+
+The Ultranet deserializer block is similar to the I2S deserializer of the transmitter. It is responsible for reading the bits of the serial audio data coming from AES3 receiver block in sync with the different clock signals. It then outputs a 24bit vector containing the audio data, a 3bit vector containing the channel index associated with the data and a "new data" signal that is asserted when the data is ready to be used.
+
+Just like the I2S deserializer, there are two processes, the first one is the one that makes the counters tick and keeps things in sync.
+The second one is reading the serial data and shifting it into the buffer when told so by the first process.
+
+```vhdl
+detect_sample: process(clk) begin
+    if rising_edge(clk) then
+        -- Check if we are starting a new block
+        if bsync_pos_edge = '1' then 
+            -- Yes, reset counters and signals
+            bit_counter <= 0;
+            channel_counter <= 4;
+            new_data <= '0';
+        else
+            -- No, check if we are on the rising or falling edge of the word clock
+            if lrclk_edge = '1' then
+                -- Yes, reset the bit counter
+                bit_counter <= 0;
+                -- Increment the channel counter up to the defined number of channels then reset to 0
+                if channel_counter < (CHANNELS-1) then
+                    channel_counter <= channel_counter + 1;
+                else
+                    channel_counter <= 0;
+                end if;
+            end if;
+
+            -- Increment the bit counter (up to 32 bits) on a rising edge of the bit clock
+            if bclk_pos_edge = '1' then
+                if bit_counter < 31 then
+                    bit_counter <= bit_counter + 1; -- increment bit_counter until bit 31
+                end if;
+            end if;
+                
+            -- Sample the data on the falling edge of the bit clock
+            if bclk_neg_edge = '1' then  	
+                -- Set the audio data region signal if we are in the correct range [....AAAASSSSSSSSSSSSSSSSSSSSEUCP]
+                if bit_counter = 4 then
+                    in_sound_data_region <= '1';
+                elsif bit_counter >= 24+4 then
+                    in_sound_data_region <= '0';
+                end if;
+            end if;
+                
+            -- Assert the new data signal within the unused 4bits at the end of the frame
+            if bit_counter = 30 and bclk_neg_edge = '1' then 
+                new_data <= '1';
+            else
+                new_data <= '0';
+            end if;
+        end if;
+    end if;
+end process;
+    
+-- Send the data out
+sample_out <= sample_data;
+channel <= to_unsigned(channel_counter, channel'length);
+
+get_data: process(clk) begin
+    if rising_edge(clk) then
+        -- Receive individual bits for audio-data (24 bits) on the rising edge of the bit clock and only if in the correct region
+        if bclk_pos_edge = '1' and in_sound_data_region = '1' then
+            -- in AES3/EBU the first bit after preamble is LSB, so we have to shift from the left to the right
+            sample_data <= sdata & sample_data(sample_data'high downto 1);
+        end if;
+    end if;
+end process;
+```
+
+#### Ultranet demuxer
+
+The Ultranet demuxer is probably the simplest block on this whole project. In retrospect, it should probably be integrated into the deserializer. The only thing it does is splitting the audio data into individual vectors according to the index received when the new data signal is asserted:
+
+```vhdl
+process(clk) begin
+	if (rising_edge(clk)) then
+	    -- Store individual channels to output-vectors on the rising edge of new data
+		if new_data_pos_edge = '1' then
+			if channel = 0 then
+				ch1_out <= sample_in;
+			elsif channel = 1 then
+				ch2_out <= sample_in;
+			elsif channel = 2 then
+				ch3_out <= sample_in;
+			elsif channel = 3 then
+				ch4_out <= sample_in;
+			elsif channel = 4 then
+				ch5_out <= sample_in;
+			elsif channel = 5 then
+				ch6_out <= sample_in;
+			elsif channel = 6 then
+				ch7_out <= sample_in;
+			elsif channel = 7 then
+				ch8_out <= sample_in;
+			end if;
+		end if;
+	end if;
+end process;
+```
+
 #### I2S Transmitter
 
-### Alllll the channels
-### It's working ?
+Thanks to the move from I2S mode to left-justified mode on the DACs the implementation of the transmitter is basic.
+As always, there are some edge detectors, followed by the two main processes.
+
+The first one is keeping the bit counter in sync in relation to the bit clock and reset signal. It also handles loading the sample buffer on the last bit.
+The second process simply output the audio data to the correct channel.
+
+```vhdl
+detect_sample: process(clk) begin
+	if rising_edge(clk) then
+		if reset_n = '0' then 
+			bit_counter <= 0;
+		else
+            -- If the left/right channel changes, reset the output bit counter
+			if lrclk_edge = '1' then
+				bit_counter <= 0;
+			end if;
+                
+            -- Increment the bit counter a positive edge of the bit clock
+			if bclk_pos_edge = '1' then
+				bit_counter <= bit_counter + 1;
+			end if;
+                
+            -- Update the sample buffers on the last positive bit clock edge 
+            -- TODO: Shouldn't this be on the negative edge of LRCLK?
+			if bclk_pos_edge = '1' then  	
+				if bit_counter = DATA_WIDTH-1 then
+                    sample_ch_1_l_buf <= sample_ch_1_l;
+                    sample_ch_1_r_buf <= sample_ch_1_r;
+                    sample_ch_2_l_buf <= sample_ch_2_l;
+                    sample_ch_2_r_buf <= sample_ch_2_r;
+                    sample_ch_3_l_buf <= sample_ch_3_l;
+                    sample_ch_3_r_buf <= sample_ch_3_r;
+                    sample_ch_4_l_buf <= sample_ch_4_l;
+                    sample_ch_4_r_buf <= sample_ch_4_r;
+				end if;
+			end if;
+		end if;
+	end if;
+end process;	
+	
+send_data: process(clk) begin
+	if rising_edge(clk) then
+		if reset_n = '0' then
+            -- Reset asserted, send zeros to the output
+			sdout_1 <= '0';
+			sdout_2 <= '0';
+			sdout_3 <= '0';
+			sdout_4 <= '0';
+		else
+            -- Normal state, output the proper bit (left or right) for each channel on the negative bit clock edge
+			if bclk_neg_edge = '1' then  	
+                if lrclk = '1' then
+                    sdout_1 <= sample_ch_1_l_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_2 <= sample_ch_2_l_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_3 <= sample_ch_3_l_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_4 <= sample_ch_4_l_buf(DATA_WIDTH - 1 - bit_counter); 
+                else
+                    sdout_1 <= sample_ch_1_r_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_2 <= sample_ch_2_r_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_3 <= sample_ch_3_r_buf(DATA_WIDTH - 1 - bit_counter);
+                    sdout_4 <= sample_ch_4_r_buf(DATA_WIDTH - 1 - bit_counter);
+                end if;
+			end if;
+
+		end if;
+	end if;
+end process;    
+```
+
+### It's working?
+
+Well, after a lot of tuning 🎛️, the answer is YES!🎉 And honestly, it's working pretty well considering that this is my first time working with FPGAs. Here's a logic analyzer capture I took right after I got everything up and running for the first time 🏆:
+
+![Logic analyzer capture of the first working test](images/DSView_2025-03-02_19-12-29_77093cbd-9a9c-4458-b470-dad0f42aa252.png "Logic analyzer capture of the first working test")
+
+{{<todo>}}Demo video{{</todo>}}
+
+I'm much happier 😀 with the implementation of the receiver, it's much more stable/polished than the transmitter. The biggest thing by far is that the `reset` signal is actually used and everything re-sync correctly after it has been asserted.
+
+I think that, the only reason the transmitter seems to work at all is that the clocks are never actually stopped during operation 😅.
+
+Still, it’s more than good enough for a first prototype 👍.
 
 ## Testing on real hardware
+
+So let's have fun with some real hardware that supports Ultranet:
+- The [Midas DL-16](https://www.midasconsoles.com/product.html?modelCode=0606-ACJ) which is a `16 Input, 8 Output Stage Box with 16 Midas Microphone Preamplifiers, ULTRANET and ADAT Interfaces`.<br>I can use it in standalone mode as an overkill A/D converter to convert the 16 analog inputs to Ultranet. 
+- The [Turbosound TFX122M-AN](https://www.turbosound.com/product.html?modelCode=0315-ABC) which is a `Coaxial 1100W 2-Way 12" Stage Monitor with Klark Teknik DSP Technology and ULTRANET`.<br>It has the downside of being a loudspeaker so bit-shift mistakes at 2am are quite annoying. But at the same time the configuration app proved unexpectedly useful for debugging.
+
 ### Transmitter
+
+I started by verifying the transmitter 📤. I was feeling pretty confident since everything had worked on my devboard so far 😎. So, I plugged the RJ-45 cable into the speaker, expecting things to work. But then, disaster struck 🌪️. I couldn't even select the Ultranet input from the speaker's built-in controls.
+
+F---, that means that either my implementation is not working at all or that I messed-up something 😕. I decided to troubleshoot by downloading the Turbosound Edit app and connecting to the speaker. Unexpectedly 😯, I was able to force the input to be an Ultranet input but was then immediately prompted by this error message:
+
+![Turbosound Edit - Forced Ultranet error message](images/TURBOSOUND_Edit_2025-04-06_20-46-33_e1f5a3e2-dbb3-4682-a630-ee6c3f0b8c04.png "Turbosound Edit - Forced Ultranet error message")
+
+To my surprise 🤩, even though the error appeared, the speaker did seem to switch to the Ultranet input. I started hearing something that could only be described as audio thrown into a blender, chopped up, and distorted 🍹 (Fun fact this first test was at 3am 🌃, I wasn't the favorite person in the morning!).
+
+This told me that my implementation wasn’t completely broken. It was close, but just not quite there yet.
+
+After much troubleshooting 🛠️, I figured out that the Ultranet inverts the validity bit. Once I applied this fix, I was able to get rid of the `Check ULTRANET!` error message. This discovery not only unlocked the built-in controls but also the VU-meter on the Turbosound Edit app:
+
+![Turbosound Edit - Sound on wrong channel](images/TURBOSOUND_Edit_2025-03-16_22-20-29_69396e41-7bf7-4066-8aa6-1f594bbc2d35.png "Turbosound Edit - Sound on wrong channel")
+
+This was interesting because I only sent an audio signal on channel 1, not the third one 🧐. During testing, I got multiple variants of this, for example, sending audio on channel 2 resulted in audio on channel 2, 4, 6 and 8. 
+
+No matter what adjustments I made, the audio was always barely recognizable, and it sounded like it was skipping samples 👂.
+
+At that point, I decided to take a step back from the transmitter 🖐 and turn my attention to the receiver, maybe I'll have better luck 🍀.
+
 ### Receiver
+
+So, the receiver… well, how do I put this? It was even worse than I expected 😟. I couldn't get anything stable or consistent. All I could capture were small chunks of audio, with the aes3rx module showing an "active" status only intermittently. Definitely not the kind of reliable performance I was aiming for.
+
+At this point, I decided to go back and re-watch the video that originally inspired this whole project 📺. While watching Christian troubleshoot similar issues, I noticed that he had solved his problems by increasing the clock speed going into the aes3rx module, pushing it up to 200 MHz 💨. This immediately stood out to me as a potential fix for my situation 💡.
+
+*Note: At this point I was still deriving the "main clock" from the 27 MHz crystal provided by the Tang Nano 9k. I was also only providing a ~100MHz clock to the aes3rx module.*
+
+So, I went ahead and tested this. I decided to increase the PLL factors of the main clock to push it closer to that 200 MHz target. Unfortunately, this is where my lack of experience with FPGAs really showed. No matter what I tried, I couldn't make it work properly. The best I could manage was around 150 MHz, and anything beyond that would cause the module to brick 🧱.
+
+But after much trial and error 🛠️, I stumbled upon a solution. Instead of using the 27 MHz crystal, I switched to the 24.576 MHz clock from the PLL1707. I fed that into the PLL, adjusting the factors until I could reach a 245.76 MHz "main clock". And just like that… I was able to decode the data.
+
+While this was a breakthrough, I’m not entirely happy with the outcome 😕. For one, it means that 44.1 kHz Ultranet support is now off the table. Moreover, the whole project now relies heavily on a "patch" that I don’t fully understand, something I’ll definitely need to revisit for part 2 🤔.
+
+{{<todo>}}Demo video{{</todo>}}
+
+Now, here’s the really strange part: the channel offset is all kinds of messed up. For example, if I send audio into channels 1-2 of the DL-16, it ends up on channels 5-6 on my devboard. Even weirder: when using the "Through" port of the TFX speaker, the channel offset becomes totally random 🎲. Every so often it’s 1-2, other times 3-4, etc.
+
+The odd thing is, when I plug the DL-16 into the TFX and look at the VU meters in the Turbosound Edit app, it indicates that the audio first gets received on the wrong channels, but then automatically corrects itself to the right ones. This is the same fishy behavior I mentioned in the research section of this article 🐟.
+
+But hey, let’s not get bogged down in the details. I GOT AUDIO WORKING!!!🥳 And, more importantly, this weird offset issue doesn’t affect devboard-to-devboard communication, which is somewhat of a relief 😮‍💨.
+
 ### Transmitter again
+
+With this renewed boost in confidence 🚀, I was finally ready to tackle the transmitter once more. Knowing that the receiver was working properly and that the transmitter worked with my receiver, meant that a significant portion of the transmitter's implementation was already functioning as expected. The hard part seemed to be behind me.
+
+I quickly ruled out a few possibilities: the preambles were fine, the audio data was correct, and the validity bit was being set properly. That narrowed it down to a few suspects: the channel status bits, the user bits and the parity calculation.
+
+Determined to get to the bottom of this, I painstakingly recorded the Ultranet stream coming from the DL-16 under various input combinations 💾. I spent a few hours capturing 500ms slices of data at 200 MHz, trying to build a database in which I could search for any anomalies that could give me a clue.
+
+![500ms of Ultranet captures at 200Mhz from the DL16](images/explorer_2025-04-06_21-34-19_d84b34fe-8cc1-4999-a9ea-0d1c580dcd26.png "500ms of Ultranet captures at 200Mhz from the DL16")
+
+After writing a script to analyze all of this 📜, the conclusion was pretty simple:
+
+The parity was untouched, the user bits were unused (always 0) and the channel status bit repeated the following pattern:
+
+<pre style="word-break: break-all; white-space: pre-wrap;">
+000000000000000000000000000000000000000000000000000000000000000011000000111100110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+</pre>
+
+Interpreted like the 2 AES3 subframes but with 8 subframes it would provide this information:
+
+<ul>
+    <li style="font-size: unset">Subframe 1: <code>00000000 11000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 2: <code>00000000 11000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 3: <code>00000000 01000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 4: <code>00000000 01000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 5: <code>00000000 00000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 6: <code>00000000 00000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 7: <code>00000000 01000000 00000000 00000000 00000000 00000000</code></li>
+    <li style="font-size: unset">Subframe 8: <code>00000000 01000000 00000000 00000000 00000000 00000000</code></li>
+</ul>
+
+While writing this article, now that I look at it, byte 2 does look like a channel offset, but who knows if I'm reading that correctly, that's for part 2 of this project.
+
+Coming back to my issue, even after using this bit sequence in the aes3 transmitter (and verifying that the correct bits are indeed being sent), it didn't change much. I did get better sound somehow 🤬🤯.
+
 #### Oh, f---, that was the issue!
-### It's working (encore) ?
+
+At some point, I decided I’d had enough of listening to garbled audio or staring at endless walls 🗑️ and went all-in: I dedicated a full day to analyzing logic analyzer traces instead. And sure enough—that’s when I found it.
+
+Looking closely at the preambles sent by the DL16, I noticed something peculiar. They **always** started with a 1. The typical pattern looked like this: ``1110010``. Not once did I see the alternate pattern that starts with a 0, like ``0001101``.
+
+![](images/dl-16-pramble.png)
+
+I then repeated 🔁 the process for my implementation and bingo. That’s when I saw the problem: my transmitter was happily alternating between both versions of the preamble.
+
+![](images/devboard-preambles.png)
+
+This immediately tickled my brain, why would the signal from Behringer only use one form of the preamble?
+
+That’s when I remembered a modification I made earlier 📝 while adding support for user bits in my S/PDIF transmitter module. I knew I'd need to include those in the parity calculation, so I updated the logic like this:
+
+```vhdl
+parity <= data_in_buffer(23) xor data_in_buffer(22) xor data_in_buffer(21) xor data_in_buffer(20) xor data_in_buffer(19) xor data_in_buffer(18) xor data_in_buffer(17)  xor data_in_buffer(16) xor data_in_buffer(15) xor data_in_buffer(14) xor data_in_buffer(13) xor data_in_buffer(12) xor data_in_buffer(11) xor data_in_buffer(10) xor data_in_buffer(9) xor data_in_buffer(8) xor data_in_buffer(7) xor data_in_buffer(6) xor data_in_buffer(5) xor data_in_buffer(4) xor data_in_buffer(3) xor data_in_buffer(2) xor data_in_buffer(1) xor data_in_buffer(0) xor user_status_shift(23) xor channel_status_shift(23);
+```
+
+But remember how I mentioned earlier that I had extended the user and channel status vectors to 384 bits to match the full length 📏 ? <br>Yeah. Well, the parity calculation? Still hardcoded to pull from bit 23.
+
+As soon as I fixed the logic to XOR the correct final bits of the expanded vectors—bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation.
+
+It would seem that in every project there is an issue where I sink countless hours 🥱 of debugging just to find out it's one of the stupidest mistakes ever 🤡. But hey, that's life …
+
+### It's working (encore)?
+
+Yes! This time, it’s really working! 🎉
+
+After around two and a half months of intense work, countless hours of testing, and plenty of moments wondering if I was losing my mind, I finally have a fully functional transmitter and receiver implementation of Ultranet.
+
+This was no small feat. Ultranet is a proprietary protocol 🔐, it is based on AES3, but with its own quirks and implementation challenges. Without access to official documentation, a good portion of the process involved reverse-engineering, experimenting, and a lot of trial and error. But ultimately, it all paid off.
+
+Both the transmitter and receiver are now reliably exchanging data in sync, and the system is behaving as expected 🥳. 
+
+{{<todo>}}Demo video{{</todo>}}
 
 ## What's next
 
+So… what’s next? 🤔 If you’ve been reading closely, you probably noticed me hinting at a part 2 more than a few times throughout this article. For once, I’m actually going to split both the development process and the write-up into two parts. This first phase is already a beast on its own, and I want to give the next phase of the project the attention it deserves.
+
+Part 2 will pick up where this leaves off. Here's a brief look at what that will include:
+
+- 🧮 (Hopefully) Tackling the channel indexing issue: This is the one big unknown about Ultranet that is still left, and I want to figure out the damn thing.
+- 🔌 Schematic: I want to revisit the audio side of the design, particularly on adding proper balanced inputs and outputs.
+- 🧩 Final PCB layout(s): This first version was mostly a proof of concept. Part 2 will focus on finalizing the board design which will probably be multiple interconnected ones.
+- 📦 1U/2U Racked case: Time to move from bare PCB on the bench to something that actually looks and feels like a finished product.
+
+Now, just to set expectations: this second part is still a long way off 📅. I usually don’t start writing about a project until it’s at least 80–90% complete, and as of right now… well, the design phase hasn’t even begun. So it might be a while before you see the next article about this project.
+
 ## Conclusion
 
+Throughout this project, I questioned 🤔, more than once whether sticking with an FPGA implementation was the right call. There were definitely moments where the idea of switching to the AK4114 felt tempting. It would’ve simplified many things and saved me from a few late nights staring at timing diagrams wondering what broke this time. But the AK4114 is officially end-of-life, not to mention pretty expensive for what it does—so that option was quickly shelved 🗄️.
 
-<!-- During the project I thought multiple times about ditching the FPGA implementation and using the AK4114, however, it's EOL and was quite expensive. There are alternatives from TI for example but where's the fun in that 😭? -->
+There are other chips on the market, like several offerings from Texas Instruments, that could’ve filled the gap. But let’s be honest: where’s the fun in taking the easy route when you could be fighting with VHDL and constraints files instead? 😭 Diving into the deep end with the FPGA kept the challenge alive, and it ended up being a fantastic learning experience.
+
+By sticking to the original goals, I set out at the beginning, I had to understand how things and why. And as frustrating as that was at times, it paid off. My understanding of FPGAs, and real-time audio protocols has improved quite a bit. Honestly, there’s no better way to learn than by getting your hands dirty, messing around with stuff, breaking it 🪓, and then figuring out how to fix it. It’s chaotic 💥, but it works.
+
+Looking back, I'm incredibly happy with what I’ve built so far 🤩. This is only Part 1 of the journey, but even at this stage, it's a solid milestone 🚩.
+
+If you’ve made it this far, thanks for reading! I hope Part 2 ends up being even better, and who knows—maybe next time I’ll even sleep. Maybe.
+
+
