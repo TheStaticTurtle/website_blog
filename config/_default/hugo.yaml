@@ -41,7 +41,7 @@ markup:
   highlight:
     guessSyntax: false
     lineNos: true
-    lineNumbersInTable: true
+    lineNumbersInTable: false
     noClasses: true
     style: manni
     tabWidth: 4

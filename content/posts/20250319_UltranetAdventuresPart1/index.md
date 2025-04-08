@@ -243,9 +243,9 @@ So we can safely assume 🧐 that they are using a standard line driver running 
 During his project, Christian made a small PCB to receive Ultranet, he used the [SI-52008-F](https://www.mouser.fr/datasheet/2/643/belfs08419_1-2290057.pdf) an RJ-45 connector with integrated magnetics and POE capability. This connector is then wired to the [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf), a `Low-Voltage, High-Speed Quadruple Differential Line Receiver` that can handle up to 32MHz data rates, can receive 5V signals and outputs 3.3V.
 
 {{< gallery >}}
-images/chrome_2025-03-23_14-24-40_2037adcc-535c-4214-934e-fe13cc91facc.png
-images/chrome_2025-03-23_14-23-39_c403c642-afb7-4cc8-b862-0bc40edab97f.png
-images/chrome_2025_03_20_11-23-59_MV5yxRStla.png
+images/chrome_2025-03-23_14-24-40_2037adcc-535c-4214-934e-fe13cc91facc.png "Christian's PCB (Top)"
+images/chrome_2025-03-23_14-23-39_c403c642-afb7-4cc8-b862-0bc40edab97f.png "Christian's PCB (Bottom)"
+images/chrome_2025_03_20_11-23-59_MV5yxRStla.png "AM26LV32 Logic diagram"
 {{< /gallery >}}
 
 
@@ -262,9 +262,9 @@ All of this uncertainty lead me down the path of trying to reverse-engineering t
 After loading the image into Gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/), I managed to get the information I was looking for:
 
 {{<gallery>}}
-images/15667910.jpg
-images/ultranet_hardware_2.png
-images/ultranet_hardware_1.jpg
+images/15667910.jpg "Klark Teknik DM80-Ultranet"
+images/ultranet_hardware_2.png "DM80-Ultranet bottom side (Power)"
+images/ultranet_hardware_1.jpg "DM80-Ultranet top side (Signal)"
 {{</gallery>}}
 
 The AES3 signals both go into a [SN74LVC1G04](https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf) `Single Inverter Gate` and a [SN74LVC1G125](https://www.ti.com/lit/ds/symlink/sn74lvc1g125.pdf) `Single Bus Buffer Gate` which gives a 5V differential signal. It then goes into what I assume to be filters, a protection diode, and a common mode choke before going into either, the connector directly or through magnetics 🧲 (we can only guess here, but I think it goes straight to the connector).
@@ -1061,7 +1061,7 @@ parity <= data_in_buffer(23) xor data_in_buffer(22) xor data_in_buffer(21) xor d
 
 But remember how I mentioned earlier that I had extended the user and channel status vectors to 384 bits to match the full length 📏 ? <br>Yeah. Well, the parity calculation? Still hardcoded to pull from bit 23.
 
-As soon as I fixed the logic to XOR the correct final bits of the expanded vectors—bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation. The reason I got better sound when I added the channel status bits is probably due to the fact that the parity calculation was correct more often for some reason 😅.
+As soon as I fixed the logic to XOR the correct final bits of the expanded vectors, bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation. The reason I got better sound when I added the channel status bits is probably due to the fact that the parity calculation was correct more often for some reason 😅.
 
 It would seem that in every project there is an issue where I sink countless hours of debugging just to find out it's one of the stupidest mistakes ever. But hey, that's life … 🤡
 
@@ -1092,7 +1092,7 @@ Now, just to set expectations: this second part is still a long way off. I usual
 
 ## Conclusion
 
-Throughout this project, I questioned, more than once whether sticking with an FPGA implementation was the right call 🤔. There were definitely moments where the idea of switching to the AK4114 felt tempting. It would’ve simplified many things and saved me from a few late nights staring at timing diagrams wondering what broke this time. But the AK4114 is officially end-of-life, not to mention pretty expensive for what it does—so that option was quickly shelved 🗄️.
+Throughout this project, I questioned, more than once whether sticking with an FPGA implementation was the right call 🤔. There were definitely moments where the idea of switching to the AK4114 felt tempting. It would’ve simplified many things and saved me from a few late nights staring at timing diagrams wondering what broke this time. But the AK4114 is officially end-of-life, not to mention pretty expensive for what it does so that option was quickly shelved 🗄️.
 
 There are other chips on the market from Texas Instruments and others, that could’ve filled the gap. But let’s be honest: where’s the fun in taking the easy route when you could be fighting with VHDL and constraints files instead? 😭.
 
@@ -1102,6 +1102,6 @@ By sticking to the original goals, I set out at the beginning, I had to understa
 
 Looking back, I'm incredibly happy with what I’ve built so far 🤩. This is only Part 1 of the journey, but even at this stage, it's a solid milestone 🚩.
 
-If you’ve made it this far, thanks for reading! I hope Part 2 ends up being even better, and who knows—maybe next time I’ll even sleep. Maybe.
+If you’ve made it this far, thanks for reading! I hope Part 2 ends up being even better, and who knows, maybe next time I’ll even sleep. Maybe.
 
 
