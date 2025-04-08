@@ -940,13 +940,13 @@ end process;
 
 ### It's working?
 
-Well, after a lot of tuning 🎛️, the answer is YES!🎉 And honestly, it's working pretty well considering that this is my first time working with FPGAs. Here's a logic analyzer capture I took right after I got everything up and running for the first time 🏆:
+Well, after a lot of tuning, the answer is YES!🎉 And honestly, it's working pretty well considering that this is my first time working with FPGAs. Here's a logic analyzer capture I took right after I got everything up and running for the first time 🏆:
 
 ![Logic analyzer capture of the first working test](images/DSView_2025-03-02_19-12-29_77093cbd-9a9c-4458-b470-dad0f42aa252.png "Logic analyzer capture of the first working test")
 
 {{<todo>}}Demo video{{</todo>}}
 
-I'm much happier 😀 with the implementation of the receiver, it's much more stable/polished than the transmitter. The biggest thing by far is that the `reset` signal is actually used and everything re-sync correctly after it has been asserted.
+I'm much happier with the implementation of the receiver, it's much more stable/polished than the transmitter. The biggest thing by far is that the `reset` signal is actually used and everything re-sync correctly after it has been asserted.
 
 I think that, the only reason the transmitter seems to work at all is that the clocks are never actually stopped during operation 😅.
 
@@ -954,19 +954,19 @@ Still, it’s more than good enough for a first prototype 👍.
 
 ## Testing on real hardware
 
-So let's have fun with some real hardware that supports Ultranet:
+So let's have fun with some real hardware that supports Ultranet. I managed to borrow these devices:
 - The [Midas DL-16](https://www.midasconsoles.com/product.html?modelCode=0606-ACJ) which is a `16 Input, 8 Output Stage Box with 16 Midas Microphone Preamplifiers, ULTRANET and ADAT Interfaces`.<br>I can use it in standalone mode as an overkill A/D converter to convert the 16 analog inputs to Ultranet. 
-- The [Turbosound TFX122M-AN](https://www.turbosound.com/product.html?modelCode=0315-ABC) which is a `Coaxial 1100W 2-Way 12" Stage Monitor with Klark Teknik DSP Technology and ULTRANET`.<br>It has the downside of being a loudspeaker so bit-shift mistakes at 2am are quite annoying. But at the same time the configuration app proved unexpectedly useful for debugging.
+- The [Turbosound TFX122M-AN](https://www.turbosound.com/product.html?modelCode=0315-ABC) which is a `Coaxial 1100W 2-Way 12" Stage Monitor with Klark Teknik DSP Technology and ULTRANET`.<br>Unfortunatly it's the only piece of hardware with an Ultranet input I had access to. It has the downside of being a loudspeaker so bit-shift mistakes at 2am are quite annoying. But at the same time the configuration app proved unexpectedly useful for debugging.
 
 ### Transmitter
 
-I started by verifying the transmitter 📤. I was feeling pretty confident since everything had worked on my devboard so far 😎. So, I plugged the RJ-45 cable into the speaker, expecting things to work. But then, disaster struck 🌪️. I couldn't even select the Ultranet input from the speaker's built-in controls.
+I started by verifying the transmitter. I was feeling pretty confident since everything had worked on my devboard so far. So, I plugged the RJ-45 cable into the speaker, expecting things to work. But then, disaster struck 🌪️. I couldn't even select the Ultranet input from the speaker's built-in controls.
 
-F---, that means that either my implementation is not working at all or that I messed-up something 😕. I decided to troubleshoot by downloading the Turbosound Edit app and connecting to the speaker. Unexpectedly 😯, I was able to force the input to be an Ultranet input but was then immediately prompted by this error message:
+F---, that means that either my implementation is not working at all or that I messed-up something 😕. I decided to troubleshoot by downloading the Turbosound Edit app and connecting to the speaker. Unexpectedly, I was able to force the input to be an Ultranet input but was then immediately prompted by this error message:
 
 ![Turbosound Edit - Forced Ultranet error message](images/TURBOSOUND_Edit_2025-04-06_20-46-33_e1f5a3e2-dbb3-4682-a630-ee6c3f0b8c04.png "Turbosound Edit - Forced Ultranet error message")
 
-To my surprise 🤩, even though the error appeared, the speaker did seem to switch to the Ultranet input. I started hearing something that could only be described as audio thrown into a blender, chopped up, and distorted 🍹 (Fun fact this first test was at 3am 🌃, I wasn't the favorite person in the morning!).
+To my surprise 🤯, even though the error appeared, the speaker did seem to switch to the Ultranet input. I started hearing something that could only be described as audio thrown into a blender, chopped up, and distorted (Fun fact this first test was at 3am, I wasn't the favorite person in the morning!).
 
 This told me that my implementation wasn’t completely broken. It was close, but just not quite there yet.
 
@@ -976,21 +976,23 @@ After much troubleshooting 🛠️, I figured out that the Ultranet inverts the 
 
 This was interesting because I only sent an audio signal on channel 1, not the third one 🧐. During testing, I got multiple variants of this, for example, sending audio on channel 2 resulted in audio on channel 2, 4, 6 and 8. 
 
-No matter what adjustments I made, the audio was always barely recognizable, and it sounded like it was skipping samples 👂.
+No matter what adjustments I made, the audio was always barely recognizable, and it sounded like it was skipping samples.
 
-At that point, I decided to take a step back from the transmitter 🖐 and turn my attention to the receiver, maybe I'll have better luck 🍀.
+I also went downs the rabbit hole of updating the speaker because I saw that the changelog included something about ultranet compatibility. Unfortunatly this didn't change anything to my situation.
+
+At that point, I decided to take a step back from the transmitter and turn my attention to the receiver, maybe I'll have better luck 🍀.
 
 ### Receiver
 
-So, the receiver… well, how do I put this? It was even worse than I expected 😟. I couldn't get anything stable or consistent. All I could capture were small chunks of audio, with the aes3rx module showing an "active" status only intermittently. Definitely not the kind of reliable performance I was aiming for.
+So, the receiver… well, how do I put this? It was even worse than I expected 😢. I couldn't get anything stable or consistent. All I could capture were small chunks of audio, with the aes3rx module showing an "active" status only intermittently. Definitely not the kind of reliable performance I was aiming for.
 
-At this point, I decided to go back and re-watch the video that originally inspired this whole project 📺. While watching Christian troubleshoot similar issues, I noticed that he had solved his problems by increasing the clock speed going into the aes3rx module, pushing it up to 200 MHz 💨. This immediately stood out to me as a potential fix for my situation 💡.
+At this point, I decided to go back and re-watch the video that originally inspired this whole project 📺. While watching Christian troubleshoot similar issues, I noticed that he had solved his problems by increasing the clock speed going into the aes3rx module, pushing it up to 200 MHz 💨. This immediately stood out to me as a potential fix for my situation.
 
 *Note: At this point I was still deriving the "main clock" from the 27 MHz crystal provided by the Tang Nano 9k. I was also only providing a ~100MHz clock to the aes3rx module.*
 
 So, I went ahead and tested this. I decided to increase the PLL factors of the main clock to push it closer to that 200 MHz target. Unfortunately, this is where my lack of experience with FPGAs really showed. No matter what I tried, I couldn't make it work properly. The best I could manage was around 150 MHz, and anything beyond that would cause the module to brick 🧱.
 
-But after much trial and error 🛠️, I stumbled upon a solution. Instead of using the 27 MHz crystal, I switched to the 24.576 MHz clock from the PLL1707. I fed that into the PLL, adjusting the factors until I could reach a 245.76 MHz "main clock". And just like that… I was able to decode the data.
+But after much trial and error, I stumbled upon a "solution". Instead of using the 27 MHz crystal, I switched to the 24.576 MHz clock from the PLL1707. I fed that into the PLL, adjusting the factors until I could reach a 245.76 MHz "main clock". And just like that… I was able to decode the data.
 
 While this was a breakthrough, I’m not entirely happy with the outcome 😕. For one, it means that 44.1 kHz Ultranet support is now off the table. Moreover, the whole project now relies heavily on a "patch" that I don’t fully understand, something I’ll definitely need to revisit for part 2 🤔.
 
@@ -998,13 +1000,13 @@ While this was a breakthrough, I’m not entirely happy with the outcome 😕. F
 
 Now, here’s the really strange part: the channel offset is all kinds of messed up. For example, if I send audio into channels 1-2 of the DL-16, it ends up on channels 5-6 on my devboard. Even weirder: when using the "Through" port of the TFX speaker, the channel offset becomes totally random 🎲. Every so often it’s 1-2, other times 3-4, etc.
 
-The odd thing is, when I plug the DL-16 into the TFX and look at the VU meters in the Turbosound Edit app, it indicates that the audio first gets received on the wrong channels, but then automatically corrects itself to the right ones. This is the same fishy behavior I mentioned in the research section of this article 🐟.
+The odd thing is, when I plug the DL-16 into the TFX and look at the VU meters in the Turbosound Edit app, it indicates that the audio first gets received on the wrong channels, but then automatically corrects itself to the right ones (Probably after the channel status has been received completely). This is the fishy behavior I mentioned in the research section of this article 🐟.
 
-But hey, let’s not get bogged down in the details. I GOT AUDIO WORKING!!!🥳 And, more importantly, this weird offset issue doesn’t affect devboard-to-devboard communication, which is somewhat of a relief 😮‍💨.
+But hey, let’s not get bogged down in the details. **I GOT AUDIO WORKING!!!🥳** And, more importantly, this weird offset issue doesn’t affect devboard-to-devboard communication, which is somewhat of a relief 😌.
 
 ### Transmitter again
 
-With this renewed boost in confidence 🚀, I was finally ready to tackle the transmitter once more. Knowing that the receiver was working properly and that the transmitter worked with my receiver, meant that a significant portion of the transmitter's implementation was already functioning as expected. The hard part seemed to be behind me.
+With this renewed boost in confidence 🚀, I was finally ready to tackle the transmitter once more. Knowing that the receiver was working properly, and that the transmitter had worked with my receiver before, meant that a significant portion of the transmitter's implementation was already functioning as expected. The hard part seemed to be behind me.
 
 I quickly ruled out a few possibilities: the preambles were fine, the audio data was correct, and the validity bit was being set properly. That narrowed it down to a few suspects: the channel status bits, the user bits and the parity calculation.
 
@@ -1014,7 +1016,7 @@ Determined to get to the bottom of this, I painstakingly recorded the Ultranet s
 
 After writing a script to analyze all of this 📜, the conclusion was pretty simple:
 
-The parity was untouched, the user bits were unused (always 0) and the channel status bit repeated the following pattern:
+The parity was untouched (duh or it wouldn't work with off-the-shelf chips 🤦‍♂️), the user bits were unused (always 0) and the channel status bit repeated the following pattern:
 
 <pre style="word-break: break-all; white-space: pre-wrap;">
 000000000000000000000000000000000000000000000000000000000000000011000000111100110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1033,25 +1035,25 @@ Interpreted like the 2 AES3 subframes but with 8 subframes it would provide this
     <li style="font-size: unset">Subframe 8: <code>00000000 01000000 00000000 00000000 00000000 00000000</code></li>
 </ul>
 
-While writing this article, now that I look at it, byte 2 does look like a channel offset, but who knows if I'm reading that correctly, that's for part 2 of this project.
+While writing this article, now that I look at it, byte 2 does look like a channel offset, but who knows if I'm reading that correctly 🤷‍♂️, that's for part 2 of this project.
 
 Coming back to my issue, even after using this bit sequence in the aes3 transmitter (and verifying that the correct bits are indeed being sent), it didn't change much. I did get better sound somehow 🤬🤯.
 
 #### Oh, f---, that was the issue!
 
-At some point, I decided I’d had enough of listening to garbled audio or staring at endless walls 🗑️ and went all-in: I dedicated a full day to analyzing logic analyzer traces instead. And sure enough—that’s when I found it.
+At some point, I decided I’d had enough of listening to garbled audio or staring at endless walls 🗑️ and went all-in: I dedicated a full day to analyzing logic analyzer traces instead. And sure enough, that’s when I found it.
 
 Looking closely at the preambles sent by the DL16, I noticed something peculiar. They **always** started with a 1. The typical pattern looked like this: ``1110010``. Not once did I see the alternate pattern that starts with a 0, like ``0001101``.
 
 ![](images/dl-16-pramble.png)
 
-I then repeated 🔁 the process for my implementation and bingo. That’s when I saw the problem: my transmitter was happily alternating between both versions of the preamble.
+I then repeated the process for my implementation and bingo. That’s when I saw the problem: my transmitter was happily alternating between both versions of the preamble.
 
 ![](images/devboard-preambles.png)
 
 This immediately tickled my brain, why would the signal from Behringer only use one form of the preamble?
 
-That’s when I remembered a modification I made earlier 📝 while adding support for user bits in my S/PDIF transmitter module. I knew I'd need to include those in the parity calculation, so I updated the logic like this:
+That’s when I remembered a modification I made earlier while adding support for user bits in my S/PDIF transmitter module 📝. I knew I'd need to include those in the parity calculation, so I updated the logic like this:
 
 ```vhdl
 parity <= data_in_buffer(23) xor data_in_buffer(22) xor data_in_buffer(21) xor data_in_buffer(20) xor data_in_buffer(19) xor data_in_buffer(18) xor data_in_buffer(17)  xor data_in_buffer(16) xor data_in_buffer(15) xor data_in_buffer(14) xor data_in_buffer(13) xor data_in_buffer(12) xor data_in_buffer(11) xor data_in_buffer(10) xor data_in_buffer(9) xor data_in_buffer(8) xor data_in_buffer(7) xor data_in_buffer(6) xor data_in_buffer(5) xor data_in_buffer(4) xor data_in_buffer(3) xor data_in_buffer(2) xor data_in_buffer(1) xor data_in_buffer(0) xor user_status_shift(23) xor channel_status_shift(23);
@@ -1059,9 +1061,9 @@ parity <= data_in_buffer(23) xor data_in_buffer(22) xor data_in_buffer(21) xor d
 
 But remember how I mentioned earlier that I had extended the user and channel status vectors to 384 bits to match the full length 📏 ? <br>Yeah. Well, the parity calculation? Still hardcoded to pull from bit 23.
 
-As soon as I fixed the logic to XOR the correct final bits of the expanded vectors—bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation.
+As soon as I fixed the logic to XOR the correct final bits of the expanded vectors—bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation. The reason I got better sound when I added the channel status bits is probably due to the fact that the parity calculation was correct more often for some reason 😅.
 
-It would seem that in every project there is an issue where I sink countless hours 🥱 of debugging just to find out it's one of the stupidest mistakes ever 🤡. But hey, that's life …
+It would seem that in every project there is an issue where I sink countless hours of debugging just to find out it's one of the stupidest mistakes ever. But hey, that's life … 🤡
 
 ### It's working (encore)?
 
@@ -1069,7 +1071,7 @@ Yes! This time, it’s really working! 🎉
 
 After around two and a half months of intense work, countless hours of testing, and plenty of moments wondering if I was losing my mind, I finally have a fully functional transmitter and receiver implementation of Ultranet.
 
-This was no small feat. Ultranet is a proprietary protocol 🔐, it is based on AES3, but with its own quirks and implementation challenges. Without access to official documentation, a good portion of the process involved reverse-engineering, experimenting, and a lot of trial and error. But ultimately, it all paid off.
+This was no small feat. Ultranet is a proprietary protocol, it is based on AES3, but with its own quirks and implementation challenges. Without access to official documentation, a good portion of the process involved reverse-engineering, experimenting, and a lot of trial and error. But ultimately, it paid off.
 
 Both the transmitter and receiver are now reliably exchanging data in sync, and the system is behaving as expected 🥳. 
 
@@ -1077,22 +1079,24 @@ Both the transmitter and receiver are now reliably exchanging data in sync, and 
 
 ## What's next
 
-So… what’s next? 🤔 If you’ve been reading closely, you probably noticed me hinting at a part 2 more than a few times throughout this article. For once, I’m actually going to split both the development process and the write-up into two parts. This first phase is already a beast on its own, and I want to give the next phase of the project the attention it deserves.
+So… what’s next? 🤔 If you’ve been reading closely, you probably noticed me hinting at a part 2 more than a few times throughout this article. For once, I’m actually going to split both the development process and the write-up into two parts. This first "prototype" phase is already a beast on its own, and I want to give the next phase of the project the attention it deserves.
 
 Part 2 will pick up where this leaves off. Here's a brief look at what that will include:
 
-- 🧮 (Hopefully) Tackling the channel indexing issue: This is the one big unknown about Ultranet that is still left, and I want to figure out the damn thing.
+- 🧮 (Hopefully) Tackling the channel indexing issue: **This is the one big unknown about Ultranet that is still left**, and I want to figure out the damn thing.
 - 🔌 Schematic: I want to revisit the audio side of the design, particularly on adding proper balanced inputs and outputs.
 - 🧩 Final PCB layout(s): This first version was mostly a proof of concept. Part 2 will focus on finalizing the board design which will probably be multiple interconnected ones.
 - 📦 1U/2U Racked case: Time to move from bare PCB on the bench to something that actually looks and feels like a finished product.
 
-Now, just to set expectations: this second part is still a long way off 📅. I usually don’t start writing about a project until it’s at least 80–90% complete, and as of right now… well, the design phase hasn’t even begun. So it might be a while before you see the next article about this project.
+Now, just to set expectations: this second part is still a long way off. I usually don’t start writing about a project until it’s at least 90-95% complete, and as of right now… well, the design phase hasn’t even begun. It is comming because I have a (very loose) deadline, but might be a while before you see the next article about this project 📅.
 
 ## Conclusion
 
-Throughout this project, I questioned 🤔, more than once whether sticking with an FPGA implementation was the right call. There were definitely moments where the idea of switching to the AK4114 felt tempting. It would’ve simplified many things and saved me from a few late nights staring at timing diagrams wondering what broke this time. But the AK4114 is officially end-of-life, not to mention pretty expensive for what it does—so that option was quickly shelved 🗄️.
+Throughout this project, I questioned, more than once whether sticking with an FPGA implementation was the right call 🤔. There were definitely moments where the idea of switching to the AK4114 felt tempting. It would’ve simplified many things and saved me from a few late nights staring at timing diagrams wondering what broke this time. But the AK4114 is officially end-of-life, not to mention pretty expensive for what it does—so that option was quickly shelved 🗄️.
 
-There are other chips on the market, like several offerings from Texas Instruments, that could’ve filled the gap. But let’s be honest: where’s the fun in taking the easy route when you could be fighting with VHDL and constraints files instead? 😭 Diving into the deep end with the FPGA kept the challenge alive, and it ended up being a fantastic learning experience.
+There are other chips on the market from Texas Instruments and others, that could’ve filled the gap. But let’s be honest: where’s the fun in taking the easy route when you could be fighting with VHDL and constraints files instead? 😭.
+
+I don't think I would go with the FPGA route if this was a work project but as this is a side project that will be used in a non-critical part of my infrastructure, I acheived my primary goal with these huge projects: learning 👨🏻‍🎓. Diving into the deep end with the FPGA kept the challenge alive, and it ended up being a fantastic learning experience
 
 By sticking to the original goals, I set out at the beginning, I had to understand how things and why. And as frustrating as that was at times, it paid off. My understanding of FPGAs, and real-time audio protocols has improved quite a bit. Honestly, there’s no better way to learn than by getting your hands dirty, messing around with stuff, breaking it 🪓, and then figuring out how to fix it. It’s chaotic 💥, but it works.
 
