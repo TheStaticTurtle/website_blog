@@ -3,7 +3,7 @@ slug: ultranet-adventures-part-1
 title: "Ultranet adventures part 1: Working prototype!"
 draft: false
 featured: false
-date: 2025-03-19T09:00:00.000Z
+date: 2025-05-01T16:00:00.000Z
 image: "images/cover.jpg"
 tags:
   - electronics
@@ -27,19 +27,19 @@ Deep-diving into Ultranet and re-implementing both a receiver and transmitter on
 <!--more-->
 
 {{< warn >}}
-This is a stupidly long article, it details the different phases thoroughly, you'll need probably some time to really read it
+This is a stupidly long article, it details the different phases thoroughly, you'll need probably some time to really read it. <br>Demo video is available at the <a href="#its-working-encore">end</a>!
 {{< /warn >}}
 
 ## Why
 
-In my last article about the open-source SDI to fiber converter, I briefly talked about my brand new MPO-12 cable with 12 OM3 fibers 🔦.
+In my last article about the [open-source SDI to fiber converter](/diy-opensource-bidirectional-sdi-to-fiber-converter/), I briefly talked about my brand new MPO-12 cable with 12 OM3 fibers 🔦.
 I've also hinted that I might use the two spare fibers I had for audio 🔊.
 
 These audio channels will be used mostly as side-channels, stuff like LTC time code, backup sound pickup, and (maybe) intercom
 
 When I started this project, there were four "mainstream" ways I thought I could tackle this:
 
-- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's professional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3))<br>It's a digital audio interface transmitted over various connectors, such as (plastic) fiber-optic cables. This would be the most obvious option, AES3 can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module for example.
+- [S/PDIF (Sony/Philips Digital Interface)](https://en.wikipedia.org/wiki/S/PDIF) (or it's professional big brother [AES/EBU](https://en.wikipedia.org/wiki/AES3))<br>It's a digital audio interface transmitted over various connectors, such as (plastic) fiber-optic cables. This would be the most obvious option, S/PDIF can already be transmitted over fiber so it wouldn't be that difficult to adapt it to OM3 with an SFP module.
     - The main upside is that there are plenty of cheap modules that already exist to convert analog to digital and vice versa
     - The main downside is that it is only two channels per link 🤔
     <br><br>
@@ -64,16 +64,16 @@ Then the universe dropped this gem 💎 from Christian Nöding:
 
 {{< og "https://www.youtube.com/watch?v=c7VGjq9yp8g" >}}
 
-This is what kickstarted the whole thing. From the video, it seemed that Ultranet, a protocol that I have seen but never used, is somewhat based on two AES3 signals each containing 8 channels.
+This is what kickstarted the whole thing. From the video, it seemed that Ultranet (a protocol that I have heard of but never used), is somewhat based on two AES3 signals each containing 8 channels.
 This would mean either 8 channels bidirectional or 16 uni-directional channels on two fiber 🤩. 
 Moreover, I do have (limited) access to hardware that can send and receive Ultranet so I can easily test my implementation.
 But the most important thing is that Christian proved it was possible to do it 🥳!
 
-*Note: for the story's sake, events and discoveries aren't necessarily in chronological order.*
+*Note: for the story's sake, events, and discoveries aren't necessarily in chronological order.*
 
 ## Research
 
-As always for big projects, I started by doing some research 📜, this part also contains discoveries and light-bulb moments I had during the project.
+As always for big projects, I started by doing some research 📜, this part also contains discoveries and light-bulb moments I had **during** the project.
 
 ### AES/EBU
 
@@ -91,7 +91,7 @@ Moreover, there are a bunch of other documents linked to AES3 from which we can 
 
 #### Electrical signals
 
-AES3 can be transmitted over two main kinds of connections:
+AES3 can be transmitted over three main kinds of connections:
 - **IEC60958 Type I**: This defines a balanced, three-conductor, 110-ohm twisted pair cable with XLR connectors. Type I connections are most often used in professional installations and are considered the standard connector for AES3
 - **IEC60958 Type II**: It defines an unbalanced electrical or optical interface for consumer electronics applications. This implementation is the one used by S/PDIF. S/PDIF and AES3 are interchangeable at the protocol level, but differ at the physical level (voltage / impedances).
 - **BNC connectors**: AES/EBU signals can also be run using an unbalanced 75-ohm coaxial cable. The unbalanced version has a very long transmission distance, instead of the 150 meters maximum for the balanced version. The AES-3id standard defines a 75-ohm BNC electrical variant of AES3.
@@ -238,7 +238,7 @@ So to summarize, the important things are:
   - The AES3 bit stream is 6.144 Mbit/s for 48Khz 2ch and if we assume that Ultranet is 8ch/stream, that is 24.576 Mbit/s
   - Behringer seem to skirt the "this breaks the spec" line of every specification they based Ultranet upon.
 
-So we can safely assume 🧐 that they are using a standard line driver running at 5V over a generic Ethernet pulse transformer which are typically 100 Ohms (which fits the tolerance)
+So we can safely assume 🧐 that they are using a standard line driver running at 5V over a generic Ethernet pulse transformer which has a typical impedance of 100 Ohms (which fits the tolerance)
 
 During his project, Christian made a small PCB to receive Ultranet, he used the [SI-52008-F](https://www.mouser.fr/datasheet/2/643/belfs08419_1-2290057.pdf) an RJ-45 connector with integrated magnetics and POE capability. This connector is then wired to the [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf), a `Low-Voltage, High-Speed Quadruple Differential Line Receiver` that can handle up to 32MHz data rates, can receive 5V signals and outputs 3.3V.
 
@@ -259,7 +259,7 @@ The [AM26LV32](https://www.ti.com/lit/ds/symlink/am26lv32.pdf) also has a brothe
 
 All of this uncertainty lead me down the path of trying to reverse-engineering the electrical side of a proprietary protocol with nothing but Google Images 🖼. After much research, I stumbled onto the [Klark Teknik DM80-Ultranet](https://www.thomann.fr/klark_teknik_dm80_ultranet.htm) an Ultranet expansion card for the [DM8000](https://www.klarkteknik.com/product.html?modelCode=0829-AAC). What was fascinating was the very nice and high resolution 🔍 top view of the pcb.
 
-After loading the image into Gimp I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/), I managed to get the information I was looking for:
+After loading the image into Gimp, I began tracing out connections and with the help of [The ultimate SMD marking codes database](https://smd.yooneed.one/), I managed to get the information I was looking for:
 
 {{<gallery>}}
 images/15667910.jpg "Klark Teknik DM80-Ultranet"
@@ -315,7 +315,7 @@ And that's it, really. Behringer created a very elegant solution 😎 stretching
 
 I decided that my first step would be to design a prototype development board 🦾 where I could easily explore different avenues before going straight into a final design. This approach allows me to test various configurations and functionalities without committing too much time or resources upfront.
 
-Where to start? A microcontroller 📟 seems like a good choice, but dealing with the specific signals required for this project is impractical on a traditional MCU (not to mention potential latency issues). While it might be possible to implement everything using a standard MCU, it would most likely require a specialized 👷 digital interface chip (DIX) such as the AK4114. Given these constraints and my interest in exploring new technologies, this was the perfect project to finally start working with FPGAs.
+Where to start? A microcontroller 📟 seems like a good choice, but dealing with the specific signals required for this project is impractical on a traditional MCU (not to mention potential latency issues). While it might be possible to implement everything using a standard MCU, it would most likely require a specialized digital interface chip (DIX) such as the AK4114. Given these constraints and my interest in exploring new technologies, this was the perfect project to finally start working with FPGAs.
 
 A mention must also be given to the [XMOS series of ICs](https://www.xmos.com/) ‼️. This is what Behringer is using in their Ultranet products (specifically the [XL216-512-TQ128](https://www.xmos.com/download/XL216-512-TQ128-Datasheet(1.16).pdf) in the P16-M). XMOS chips are weird 🫠 (in a good way) they are multicore microcontrollers dedicated to audio processing which means they have many peripherals related to audio as well as reference implementations. 
 
@@ -353,7 +353,7 @@ In the end, despite that the RTL I'm basing this project upon was successfully t
 
 ### I/O
 
-As this, a devboard that I want to potentially re-use in other projects ♻️, I went all in and included a wide range of connectivity options that would make this board versatile enought.
+As this is a devboard that I want to potentially re-use in other projects ♻️, I went all in and included a wide range of connectivity options that would make this board versatile enought.
 
 Instead of implementing the 16 inputs and 16 outputs that Ultranet uses, which would render this already big pcb even bigger. I opted to implement only half ✂️, which is good enought for development purposes as I can still receive one of the AES3 streams in its entirety.
 
@@ -373,7 +373,7 @@ As a last-minute touch, I added several status LEDs 💡 and three buttons on th
 
 ### Analog domain
 
-When it comes to handling audio signals of the project 🔊, there are multiple options available. You can use dedicated DACs (Digital-to-Analog Converters) and ADCs (Analog-to-Digital Converters), or you can opt for CODECs (ADC+DAC combined generally with some additional features), each with its own advantages ⚖️. 
+When it comes to handling audio signals of the project 🔊, there are multiple options available. You can use dedicated DACs (Digital-to-Analog Converters) and ADCs (Analog-to-Digital Converters), or you can opt for CODECs (ADC+DAC combined generally with some additional features), each one having its advantages and disadvantages ⚖️. 
 
 However, in this case, using a codec is a terrible choice 👎. CODECs typically share the same reference clocks between the ADC and DAC part. 
 This doesn't work for my application because while I generate the master clock for the transmit side, the decoder recovers it from the AES3 stream. In theory, they are the same but in practice various factors will slightly influence the clock speed 🕝.
@@ -502,11 +502,19 @@ Apart from these relatively minor issues, everything surprisingly worked just fi
 
 ## FPGA implementation
 
-Ok, let's start writing code (valid for FPGAs it's called RTL). 
+Ok, let's start writing code (well, for FPGAs it's called RTL). 
 
 When I started writing the implementation, I did not have access to any hardware that supports Ultranet, so I started by writing a blind implementation, meaning I wrote both the transmitter and receiver parts at the same time, validating that they were working by connecting them together and looking at logic analyzer captures.
 
 I also foolishly didn't start a git repository right away because at the beginning I was "just messing around". That means that the implementation shown here is mostly the final version for part 1.
+
+### Edge detectors
+
+Before we start I need to explain one of the building blocks I used a lot: edge detectors. They give a synchronous notification of an asynchronous edge. Synchronization is conventionally done with a two-stage shift-register that is clocked by the target domain's clock. The shift-register is then extended, and the values are compared with the last two signals:
+
+![Example edge detector diagram](diagrams/edge-detector.drawio.png "Example edge detector diagram")
+
+In layman's term, it lets me "watch" a signal which is not running at the same clock speed (or which isn't even a clock at all).
 
 ### Transmitter
 
@@ -545,7 +553,7 @@ aes_bclk <= mclk;
 The `I2S Quad deserializer` block is responsible for reading the bits of the serial audio data coming from the ADCs in sync with the different clock signals.
 The special thing about this block is that it takes four different inputs and already integrates the left/right demuxer to output the eight different 24bit vectors.
 
-The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock and their sole purpose is to detect a rising/falling edge. Here is an example for the bit clock:
+The module starts with a few edge detectors, the processes run on the much higher +100Mhz clock. Here I am using the bit clock as an example, but they are mostly all the same, you can see the 3 shift register stages and the comparator:
 ```vhdl
 detect_bclk_edge: process(clk) begin
     if rising_edge(clk) then
@@ -563,8 +571,6 @@ detect_bclk_edge: process(clk) begin
     end if;
 end process;
 ```
-
-{{<todo>}}Explain edge detectors{{</todo>}}
 
 Then there are two processes, the first one is the one that makes the counters tick and more generally, where the flow of data is "managed".
 The second one is reading the serial data on the positive edge of a bit clock and shifting it into the appropriate buffer when told so by the first process.
@@ -742,7 +748,7 @@ i2s_bit_clock: process(aes_bclk)  begin
  end process;
 ```
 
-The word clock is even more complex, instead of synchronizing on just the AES3 word clock and the bsync signal, I also make sure it's properly synchronized to the bit clock:
+The word clock is even more complex, instead of synchronizing to only the AES3 word clock and the bsync signal, I also make sure it's properly synchronized to the bit clock:
 ```vhdl
 i2s_lr_clock: process(clk) begin
     if(rising_edge(clk)) then
@@ -944,8 +950,6 @@ Well, after a lot of tuning, the answer is YES!🎉 And honestly, it's working p
 
 ![Logic analyzer capture of the first working test](images/DSView_2025-03-02_19-12-29_77093cbd-9a9c-4458-b470-dad0f42aa252.png "Logic analyzer capture of the first working test")
 
-{{<todo>}}Demo video{{</todo>}}
-
 I'm much happier with the implementation of the receiver, it's much more stable/polished than the transmitter. The biggest thing by far is that the `reset` signal is actually used and everything re-sync correctly after it has been asserted.
 
 I think that, the only reason the transmitter seems to work at all is that the clocks are never actually stopped during operation 😅.
@@ -956,7 +960,7 @@ Still, it’s more than good enough for a first prototype 👍.
 
 So let's have fun with some real hardware that supports Ultranet. I managed to borrow these devices:
 - The [Midas DL-16](https://www.midasconsoles.com/product.html?modelCode=0606-ACJ) which is a `16 Input, 8 Output Stage Box with 16 Midas Microphone Preamplifiers, ULTRANET and ADAT Interfaces`.<br>I can use it in standalone mode as an overkill A/D converter to convert the 16 analog inputs to Ultranet. 
-- The [Turbosound TFX122M-AN](https://www.turbosound.com/product.html?modelCode=0315-ABC) which is a `Coaxial 1100W 2-Way 12" Stage Monitor with Klark Teknik DSP Technology and ULTRANET`.<br>Unfortunatly it's the only piece of hardware with an Ultranet input I had access to. It has the downside of being a loudspeaker so bit-shift mistakes at 2am are quite annoying. But at the same time the configuration app proved unexpectedly useful for debugging.
+- The [Turbosound TFX122M-AN](https://www.turbosound.com/product.html?modelCode=0315-ABC) which is a `Coaxial 1100W 2-Way 12" Stage Monitor with Klark Teknik DSP Technology and ULTRANET`.<br>Unfortunately, it's the only piece of hardware with an Ultranet input I had access to. It has the downside of being a loudspeaker so bit-shift mistakes at 2am are quite annoying. But at the same time, the configuration app proved unexpectedly useful for debugging.
 
 ### Transmitter
 
@@ -978,7 +982,7 @@ This was interesting because I only sent an audio signal on channel 1, not the t
 
 No matter what adjustments I made, the audio was always barely recognizable, and it sounded like it was skipping samples.
 
-I also went downs the rabbit hole of updating the speaker because I saw that the changelog included something about ultranet compatibility. Unfortunatly this didn't change anything to my situation.
+I also went down's the rabbit hole of updating the speaker because I noticed that the changelog included something about Ultranet compatibility. Unfortunately, this didn't change anything to my situation.
 
 At that point, I decided to take a step back from the transmitter and turn my attention to the receiver, maybe I'll have better luck 🍀.
 
@@ -996,13 +1000,7 @@ But after much trial and error, I stumbled upon a "solution". Instead of using t
 
 While this was a breakthrough, I’m not entirely happy with the outcome 😕. For one, it means that 44.1 kHz Ultranet support is now off the table. Moreover, the whole project now relies heavily on a "patch" that I don’t fully understand, something I’ll definitely need to revisit for part 2 🤔.
 
-{{<todo>}}Demo video{{</todo>}}
-
-Now, here’s the really strange part: the channel offset is all kinds of messed up. For example, if I send audio into channels 1-2 of the DL-16, it ends up on channels 5-6 on my devboard. Even weirder: when using the "Through" port of the TFX speaker, the channel offset becomes totally random 🎲. Every so often it’s 1-2, other times 3-4, etc.
-
-The odd thing is, when I plug the DL-16 into the TFX and look at the VU meters in the Turbosound Edit app, it indicates that the audio first gets received on the wrong channels, but then automatically corrects itself to the right ones (Probably after the channel status has been received completely). This is the fishy behavior I mentioned in the research section of this article 🐟.
-
-But hey, let’s not get bogged down in the details. **I GOT AUDIO WORKING!!!🥳** And, more importantly, this weird offset issue doesn’t affect devboard-to-devboard communication, which is somewhat of a relief 😌.
+But hey, at least there is audio coming out of the damn thing 🎉 which means I now needed to fix the transmitter.
 
 ### Transmitter again
 
@@ -1016,7 +1014,7 @@ Determined to get to the bottom of this, I painstakingly recorded the Ultranet s
 
 After writing a script to analyze all of this 📜, the conclusion was pretty simple:
 
-The parity was untouched (duh or it wouldn't work with off-the-shelf chips 🤦‍♂️), the user bits were unused (always 0) and the channel status bit repeated the following pattern:
+The parity was untouched (duh, or it wouldn't work with off-the-shelf chips 🤦‍♂️), the user bits were unused (always 0) and the channel status bit repeated the following pattern:
 
 <pre style="word-break: break-all; white-space: pre-wrap;">
 000000000000000000000000000000000000000000000000000000000000000011000000111100110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1059,9 +1057,9 @@ That’s when I remembered a modification I made earlier while adding support fo
 parity <= data_in_buffer(23) xor data_in_buffer(22) xor data_in_buffer(21) xor data_in_buffer(20) xor data_in_buffer(19) xor data_in_buffer(18) xor data_in_buffer(17)  xor data_in_buffer(16) xor data_in_buffer(15) xor data_in_buffer(14) xor data_in_buffer(13) xor data_in_buffer(12) xor data_in_buffer(11) xor data_in_buffer(10) xor data_in_buffer(9) xor data_in_buffer(8) xor data_in_buffer(7) xor data_in_buffer(6) xor data_in_buffer(5) xor data_in_buffer(4) xor data_in_buffer(3) xor data_in_buffer(2) xor data_in_buffer(1) xor data_in_buffer(0) xor user_status_shift(23) xor channel_status_shift(23);
 ```
 
-But remember how I mentioned earlier that I had extended the user and channel status vectors to 384 bits to match the full length 📏 ? <br>Yeah. Well, the parity calculation? Still hardcoded to pull from bit 23.
+But remember how I mentioned earlier that I had extended the user and channel status vectors to 384 bits to match the full length 📏? <br>Yeah. Well, the parity calculation? Still hardcoded to pull from bit 23.
 
-As soon as I fixed the logic to XOR the correct final bits of the expanded vectors, bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation. The reason I got better sound when I added the channel status bits is probably due to the fact that the parity calculation was correct more often for some reason 😅.
+As soon as I fixed the logic to XOR the correct final bits of the expanded vectors, bam. Everything lined up. It just worked 🔥. I also went ahead an added the missing validity bit in the calculation. The reason I got better sound when I added the channel status bits is probably because the parity calculation was correct more often for some reason 😅.
 
 It would seem that in every project there is an issue where I sink countless hours of debugging just to find out it's one of the stupidest mistakes ever. But hey, that's life … 🤡
 
@@ -1069,13 +1067,23 @@ It would seem that in every project there is an issue where I sink countless hou
 
 Yes! This time, it’s really working! 🎉
 
+Well almost there is something really strange happening: the channel order is correct, meaning they are in sequence, but the channel offset is all kinds of messed up. For example, if I send audio into channels 1-2 of the DL-16, it always ends up on channels 5-6 on my devboard. Even weirder: when using the "Through" port of the TFX speaker, the channel offset becomes completely random 🎲. Every so often it’s 1-2, other times 3-4, etc.
+
+The odd thing is, when I plug the DL-16 into the TFX and look at the VU meters in the Turbosound Edit app, it indicates that the audio first gets received on the wrong channels, but then automatically corrects itself to the right ones (Probably after the channel status has been received completely). This is the fishy behavior I mentioned in the research section of this article 🐟.
+
+{{<og "https://www.youtube.com/watch?v=DDXtz1vR-gg">}}
+<br>
+
+But hey, let’s not get bogged down in the details. **I GOT ULTRANET WORKING!!!🥳** And, more importantly, this weird offset issue doesn’t seem to affect devboard-to-devboard communication, which is somewhat of a relief 😌.
+
 After around two and a half months of intense work, countless hours of testing, and plenty of moments wondering if I was losing my mind, I finally have a fully functional transmitter and receiver implementation of Ultranet.
 
-This was no small feat. Ultranet is a proprietary protocol, it is based on AES3, but with its own quirks and implementation challenges. Without access to official documentation, a good portion of the process involved reverse-engineering, experimenting, and a lot of trial and error. But ultimately, it paid off.
+This was no small feat. Ultranet is a proprietary protocol, it is based on AES3, but with its quirks and implementation challenges. Without access to official documentation, a good portion of the process involved reverse-engineering, experimenting, and a lot of trial and error. But ultimately, it paid off.
 
-Both the transmitter and receiver are now reliably exchanging data in sync, and the system is behaving as expected 🥳. 
+Both the transmitter and receiver are now reliably exchanging data in sync, and the system is behaving almost as expected 🥳. 
 
-{{<todo>}}Demo video{{</todo>}}
+{{<og "https://www.youtube.com/watch?v=_Ll4hrwM3Vc">}}
+<br>
 
 ## What's next
 
@@ -1088,7 +1096,7 @@ Part 2 will pick up where this leaves off. Here's a brief look at what that will
 - 🧩 Final PCB layout(s): This first version was mostly a proof of concept. Part 2 will focus on finalizing the board design which will probably be multiple interconnected ones.
 - 📦 1U/2U Racked case: Time to move from bare PCB on the bench to something that actually looks and feels like a finished product.
 
-Now, just to set expectations: this second part is still a long way off. I usually don’t start writing about a project until it’s at least 90-95% complete, and as of right now… well, the design phase hasn’t even begun. It is comming because I have a (very loose) deadline, but might be a while before you see the next article about this project 📅.
+Now, just to set expectations: this second part is still a long way off. I usually don’t start writing about a project until it’s at least 90-95% complete, and as of right now… well, the design phase hasn’t even begun. It is coming because I have a (very loose) deadline, but might be a while before you see the next article about this project 📅.
 
 ## Conclusion
 
@@ -1096,7 +1104,7 @@ Throughout this project, I questioned, more than once whether sticking with an F
 
 There are other chips on the market from Texas Instruments and others, that could’ve filled the gap. But let’s be honest: where’s the fun in taking the easy route when you could be fighting with VHDL and constraints files instead? 😭.
 
-I don't think I would go with the FPGA route if this was a work project but as this is a side project that will be used in a non-critical part of my infrastructure, I acheived my primary goal with these huge projects: learning 👨🏻‍🎓. Diving into the deep end with the FPGA kept the challenge alive, and it ended up being a fantastic learning experience
+I don't think I would go with the FPGA route if this was a work project, but as this is a side project that will be used in a non-critical part of my infrastructure, I achieved my primary goal with this massive project: learning 👨🏻‍🎓. Diving into the deep end with the FPGA kept the challenge alive, and it ended up being a fantastic learning experience
 
 By sticking to the original goals, I set out at the beginning, I had to understand how things and why. And as frustrating as that was at times, it paid off. My understanding of FPGAs, and real-time audio protocols has improved quite a bit. Honestly, there’s no better way to learn than by getting your hands dirty, messing around with stuff, breaking it 🪓, and then figuring out how to fix it. It’s chaotic 💥, but it works.
 
