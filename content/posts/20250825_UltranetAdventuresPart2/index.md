@@ -210,15 +210,13 @@ The schematic of the PCM5100A is super standard, it's basically a copy-paste of 
 
 Instead I choose to do a bit more work and use the NE5532. Here is how it looks:
 
-![DAC balanced output frontend](images/eeschema_2025-08-26_10-49-31_74528cb1-256f-4f43-b696-2216cb6c0b7e.png "DAC balanced output frontend")
+![DAC balanced output frontend](images/eeschema_2025-10-26_19-53-53_9d3cef85-44e5-4855-aa29-fcd53caa05bd.png "DAC balanced output frontend")
 
 So let's break it down, the NE5532 is composed of two independant operational amplifiers:
  - The first one, U5B, is a simple non-inverting buffer, as I don't have a negative supply on this system, the audio signal is biased to be centered arround 2.5V
  - The second one, U5A, is again a simple buffer but this time in a inverting configuration.
 
 It then goes to protection resistors and DC-blocking caps and finnaly end up in the connector. The same frontend is repeated for the 2nd channel 
-
-{{< todo >}}Verify the signal with an oscilloscope, something seems fishy{{< /todo >}}
 
 The PCB itself is quite simple although I took special care while routing the analog and digital parts to ensure that they didn't cross. The two ground planes are connected a connected at one point under the PCM5100A as specified in the datasheet.
 
@@ -233,15 +231,15 @@ If I don't need it I can simply disable it, but if I want to use microphones I c
 
 It does adds some complexity (especially since this modification came later which meant the PCB had to stay the same size to avoid re-designing CAD models), extra power regulation, proper protection circuit but it opens up much more flexible use cases. Here is how one channel looks:
 
-![ADC balanced input frontend](images/eeschema_2025-08-26_11-07-51_d6de3185-0ffb-4001-ae58-9292231ad39e.png "ADC balanced input frontend")
+![ADC balanced input frontend](images/eeschema_2025-10-26_20-01-21_6758def2-6a7e-454d-827d-a50b63e7f925.png "ADC balanced input frontend")
 
 As you might have guessed there's also a go-to IC for this application, the INA137. But same as before, this chip is way too expensive (less so but still). Instead I choose to use the OPA1677.
 
-But first we need to talk about what the hell is phantom power. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn’t disturb the differential audio signal. Fortunatly, IEC 61938:2018 outlines the technical specifications. Basically the max current is 10mA and you only need to connect a 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24.
+But first we need to talk about what the hell is phantom power. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn’t disturb the differential audio signal. Fortunatly, IEC 61938:2018 outlines the technical specifications. Basically the max current is 10mA and you only need to connect a 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24. If you want to learn more about phantom I can recomand you read this page: https://sound-au.com/articles/p-48.htm
 
 Note that the specification says 6.81k but I instead used 6.8k, this is because apparently, at the time getting 6.8k resistors with a low tolerance was complicated. By choosing 6.81k the specifications ensured the proper tolerance. However these days it isn't really a problem anymore.
 
-Just after this is the protection circuit, first the signal goes through DC-blocking caps followed by protection resistors and protection diodes. This circuit ensures that the signal will never have a voltage so far from the absolute maximum that it's going to break something. With these diodes the signal will be clamped somewhere arround -0.3V to +5.3V which is good enought for me
+Just after this is the protection circuit, first the signal goes through DC-blocking caps followed by protection resistors and protection diodes. This circuit ensures that the signal will never have a voltage so far from the absolute maximum that it's going to break something. You'll notice that they are marked as DNP, turns out they clamped the signal too much so I just removed them. If you have suggestions let me know
 
 The signal is then biased to 2.5V and fed to an OPA1677 configured as a simple buffer which after some more passives is being fed to the the PCM1808!
 
@@ -275,18 +273,13 @@ The bigest change is probably the IDC ports to connect the ADCs and DACs boards.
 
 #### Digital interface transciver: DIX9211
 
-Which brings me to the DIX9211. This chip basically an AES3/SPDIF receiver that spits out I2S:
+Which brings me to the DIX9211. This chip basically an AES3/SPDIF receiver that spits out I2S. This simplifies so much of the FPGA logic since receiving I2S is **way** easier than receiving AES3!
 
 ![DIX9211 Schematic](images/kicad_2025-10-10_15-08-45_254f1375-0e93-4b32-9716-21037cc8f77d.png "DIX9211 Schematic")
 
-I'm also using it as a router for the output (a bit like in the P16-M acutally):
-  - I can configure what input port is used as the input for the DIR which is then output to the DACs:
-    - RXIN0 Is wired to the SFP port
-    - RXIN1 & RXIN2 Are wired to the Hypernet port
-    - RXIN3 Is wired to the biphase output of the FPGA
-  - I can also choose which input port is used for the actual output which is fed into a buffer to send the signal to all 3 output ports.
+As I'll explain later I'm also using it as a "biphase router" (a bit like in the P16-M acutally). I can configure what input port is used as the input for the DIR and I can also choose which input port is used for the biphase output.
 
-By default it will be configured to use the RXIN0 port for the DIR and the RXIN3 port of the output but this gives me a pretty good amout of flexibility!
+This gives a huge amount of flexibility to the system!
 
 #### Supervisor MCU
 
@@ -312,6 +305,106 @@ In the future I might be able to use it as audio bridge or something. I added an
 
 ## Firmware
 
+Since I choose to go with the DIX9211, I need a way to control it. This could have been done in the FPGA, however I didn't feel like implementing it so deceided to use a raspberry pi pico.
+
+Right now it's only configuring the chip, but as I said earlier, I did connect an SPI bus with two extra pins to the FPGA, this could be used to output/input audio over USB for example.
+
+I also eluded to earlier I use the DIX9211 as a router, this is configured by the supervisor from some DIP switches:
+
+| Config      | Beaviour                                                           |
+|-------------|--------------------------------------------------------------------|
+| xx00        | The output HyperNet signal is coming from fiber input              |
+| xx01        | The output HyperNet signal is coming from the Ultranet 1-8 input.  |
+| xx10        | The output HyperNet signal is coming from the Ultranet 9-16 input. |
+| **xx11**    | **The output HyperNet signal is coming from the FPGA**             |
+|-------------|-------------------------------------------------------|
+| **00xx**    | **The DIR input is coming from fiber input**          |
+| 01xx        | The DIR input is coming from the Ultranet 1-8 input.  |
+| 10xx        | The DIR input is coming from the Ultranet 9-16 input. |
+| 11xx        | The DIR input is coming from the FPGA (loopback)      |
+
+
+There are a few additional registers to configure. The full config can be seen on the setup script bellow.<br>
+Again, I didn't feel like setting up a full C++ project with the pico-sdk (or even Arduino) so I just left CircuitPython and made it so that the script runs at boot.
+
+It could be improved by periodically watching the inputs and reconfiguring accordingly which would remove the need to push the reset button after changing the config.
+
+```python
+import board
+import busio
+import digitalio
+import time
+from adafruit_bus_device.i2c_device import I2CDevice
+
+source_map = ["Fiber", "HyperNet 1-8", "HyperNet 9-16", "FPGA"]
+
+i2c = busio.I2C(sda=board.GP12, scl=board.GP13)
+
+device_dix = I2CDevice(i2c, 64)
+    
+def read(device, register, size=1):
+    buf = bytearray(size)
+    with device_dix:
+        device_dix.write_then_readinto(bytes([register]), buf)
+    return buf
+        
+def write(device, register, data):
+    buf = bytearray(1)
+    buf[0] = register
+    buf.extend(data)
+    with device_dix:
+        device_dix.write(buf)
+
+config_outsrc_1 = digitalio.DigitalInOut(board.GP0)
+config_outsrc_1.direction = digitalio.Direction.INPUT
+config_outsrc_2 = digitalio.DigitalInOut(board.GP1)
+config_outsrc_2.direction = digitalio.Direction.INPUT
+config_inpsrc_1 = digitalio.DigitalInOut(board.GP2)
+config_inpsrc_1.direction = digitalio.Direction.INPUT
+config_inpsrc_2 = digitalio.DigitalInOut(board.GP3)
+config_inpsrc_2.direction = digitalio.Direction.INPUT
+
+config_outsrc = (not config_outsrc_1.value) << 0 | (not config_outsrc_2.value) << 1
+config_inpsrc = (not config_inpsrc_1.value) << 0 | (not config_inpsrc_2.value) << 1
+
+print(f"DIR Input source: {source_map[config_inpsrc]}")
+print(f"DIR Output source: {source_map[config_outsrc]}")
+
+
+write(device_dix, 0x2F, [0b00000101])    # DIR Output Data Format
+                                         #   24-bit MSB first, left-justified
+                          
+write(device_dix, 0x31, [0b00000000])    # XTI Source, Clock (SCK/BCK/LRCK) Frequency Setting
+                                         #   SCK=24.576M BCK=12.288M LRCK=192k 
+                          
+write(device_dix, 0x34, [config_inpsrc]) # DIR Input Biphase Source Select, Coax Amplifier Control
+                                         #   rxin0amp normal / rxin1amp normal / rxin2 source
+                          
+write(device_dix, 0x6F, [0b00011100])    # MPIO_A, MPIO_B, MPIO_C Group Function Assign
+                                         #   MPIO_A = Biphase Input Extension (RXIN8 to RXIN11)
+                                         #   MPIO_B = DIR Flags Output or GPIO (Selected by MPB3SEL, MPB2SEL, MPB1SEL, MPB0SEL)
+                                         #   MPIO_C = DIR BCUV OUT, BFRAME/VOUT/UOUT/COUT
+                          
+write(device_dix, 0x71, [0b00000000])    # MPIO_B, MPIO_C Flags or GPIO Assign Setting
+                                         #   DIR Flags, set by MPB1FLG / MPC0FLG
+                          
+write(device_dix, 0x74, [0b01010101])    # MPIO_B1, MPIO_B0 Output Flag Select
+                                         #   LOCK LOCK
+write(device_dix, 0x75, [0b01010101])    # MPIO_B3, MPIO_B2 Output Flag Select
+                                         #   LOCK LOCK
+                          
+
+write(device_dix, 0x78, [0b11001110])    # MPO1, MPO0 Function Assign Setting
+                                         #   MPO1=XMCKO MPO0=RECOUT0 
+                          
+write(device_dix, 0x24, [0b00010100])    # Oscillation Circuit Control
+                                         #   OSCAUTO=0 (always operates) XMCKENX=1 (Output) XMCKDIV=01 (XTI/2 (12.288 MHz))
+
+
+write(device_dix, 0x35, [config_outsrc]) # RECOUT0 Output Biphase Source Select
+                                         #   RECOUT0=RXIN3 MPO0MUT=Output
+```
+
 ## CAD Design
 
 Designing the physical enclosure for this project turned out to be almost as challenging as the electronics. 
@@ -329,25 +422,60 @@ I initially thought it wouldn't be enough and bought some double sided tape. To 
 
 For the DAC/ADC holder, I designed a compact holder on which I can slide the board in from the rear and locks it against the faceplate with four M3 screws into the XLR connectors. Additionaly, there are three M3 screws on the PCB itself, this increase the overall rigidity of the holder and make sure it won't break when plugging cables.
 
+{{< gallery >}}
+images/PXL_20251025_223201201.PORTRAIT.jpg "DAC with the holder (Front)"
+images/PXL_20251025_223156227.PORTRAIT.jpg "DAC with the holder (Back)"
+{{< /gallery >}}
+
 The only difference between the ADC and DAC holder is that the ADC one has an extra hole near each XLR connector for an LED which will indicate the presence of phantom power.
 
 {{< gallery >}}
-images/SLDWORKS_2025-10-12_00-21-10_d8677a72-9a7c-40fb-83d7-e0bddcaf5649.png "3D render of the DAC with the holder (Front)"
-images/SLDWORKS_2025-10-12_00-21-34_dc674615-2959-4695-85ef-4b5f66c47571.png "3D render of the DAC with the holder (Back)"
+images/PXL_20251025_223232217.PORTRAIT.jpg "ADC with the holder (Front)"
+images/PXL_20251025_223243798.PORTRAIT.jpg "ADC with the holder (Back)"
 {{< /gallery >}}
-
-{{< todo >}} Use real photos instead of renders {{< /todo >}}
 
 {{< todo >}} Dust covers {{< /todo >}}
 
 ### Main board
 
-{{< todo >}}  {{< /todo >}}
+The mainboard is going to get stuck on the shelf with double sided tape so i just needed a simple plate on the bottom to isolate the PCB form the metal shelf. And to make evrything look good, I also made a front plate to cover most of the components:
+
+{{< gallery >}}
+images/PXL_20251025_220910286.PORTRAIT.jpg "Mainboard with bottom plate"
+images/PXL_20251025_223110398.PORTRAIT.jpg "Mainboard with bottom and top plate"
+{{< /gallery >}}
+
+### Assembly
+
+And it's finnaly time for assembly!
+
+I started by putting the four DACs and four ADCs on their respective holders and seld them onto the shelf:
+
+{{< todo >}} Photo with the selds only {{< /todo >}}
+
+I then stuck the mainboard (and power supply) with some strong double-sided tape:
+
+{{< todo >}} Photo with the selds, mainboard and power supply {{< /todo >}}
+
+And finally I made "a few" custom cables to make sure evrything looks neat:
+
+{{< todo >}} Final product gallery{{< /todo >}}
+
 
 ## Validation
 
+Validation was quite fun because I discovered a few issues 😢:
+> *These issues have bee corrected in the schematics above*
+- Audio was leaking to the 2 channel of each DAC board
+  - This turned out to be caused by my 2.5V bias supply, I used a simple divider connected to both channels, I should have used either a 2.5V LDO or what I ended up doing was adding a 2nd voltage divider just for the 2nd channel.
+- Gain issue with the DAC board:
+  - Solved it by using a 0-ohm resistor for the feedback resistor of the opamp for positive output instead of the 10k I had before.
+- Same gain issue with the ADC board:
+  - Also solved it by using a 0-ohm resistor for the feedback resistor of the opamp instead of the 10k I had before.
+- Fiber input not working on the mainboard:
+  - Missing 100k pull down resistor on the negative signal of the differential pair comming from the SFP.
 
-
+But after solving these, everything worked ! Lets see the demo:
 ## Demo
 ### Hypernet to Hypernet
 {{< todo >}} Video {{< /todo >}}
@@ -362,7 +490,7 @@ images/SLDWORKS_2025-10-12_00-21-34_dc674615-2959-4695-85ef-4b5f66c47571.png "3D
 
 This project started with me wanting to carry timecode and a few other signals from stage to FOH and back. It then promply spiraled out of control and fed my curiosity about the inner workings of Behringer's Ultranet and ended up as a robust, open hardware system I can actually trust on stage. 
 
-Just like my previous project, it taught me a lot. I learned about AES3 (and Ultranet) internals, clock domains, and analog design, etc. This is huge because now when something goes wrong I actually know what to look for, I can better estimate the limits of a system and I can figure out solutions way faster.
+Just like my previous project, it taught me a lot. I learned about AES3 (and Ultranet) internals, clock domains, and analog design, etc. This is huge because now when something goes wrong I actually know what to look for, I can better estimate the limits of the systems I use and I can figure out solutions to problems way faster.
 Working on a project like this not only gives you an insane amount of knowledge on the systems you are studying but it also gives you a huge amount of respect on how much engineering goes into moving "just sixteen channels of audio".
 
-While it would be cool to look at XMOS chips or AES50, I don't think I'll touch audio stuff for a while now. However I'm no where near done with live production tools. I've been playing with intercoms (think clearcom, rts, ...) for a few years now and I'm already quite invested in making opensource analog and digital ones!
+While it would be cool to look at XMOS chips, AES50 or StageConnect (now that it's [opensource](https://github.com/OpenMixerProject/StageConnect)), I don't think I'll touch audio stuff for a while now. However I'm no where near done with live production tools. I've been playing with intercoms (think clearcom, rts, ...) for a few years now and I've already invested quite a lot of time (and money) into making opensource analog and digital prototypes!
