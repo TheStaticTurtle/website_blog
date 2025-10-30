@@ -32,11 +32,11 @@ This is a continuation of an already stupidly long adventure; you can read <a hr
 
 Welcome back! 
 
-In the last article, I heavily focused on understanding & reverse-engineering Ultranet and getting a proof of concept working on FPGA. That was mostly about the protocol side: understanding the physical side, how data flows, timings, and wrestling with bits until both transmitter and receiver behaved correctly. As we'll see later it turns out that I was wrong about the implementation!
+In the last article, I heavily focused on understanding & reverse-engineering Ultranet and getting a proof of concept working on FPGA. It was mostly about the protocol side; understanding the physical side, how data flows, timings, and wrestling with bits until both transmitter and receiver behaved correctly. As we'll see later it turns out that I was wrong about the implementation!
 
-But now, it's time to shift gears and design a product that I would actually use in live production.
+For this article, I'm shifting gears and I'm going to design a product that I would actually use in live production.
 
-The whole point of this project is to create an 8-channel stagebox for auxiliary audio lines that I will use in my live production. I recently received the dates and song list for the 2026 "tour" so timelines on multiple projects, including this one, got very real 🤩! 
+The whole point of this project is to create an 8-channel stagebox for non-critical auxiliary audio lines that I will use in my live production. I recently received the dates and song list for the 2026 "tour" so timelines on multiple projects, including this one, got very real 🤩! 
 
 As discussed in [part 1](/ultranet-adventures-part-1/), there are many options on the market ([ADAT](https://en.wikipedia.org/wiki/ADAT_Lightpipe), [MADI](https://en.wikipedia.org/wiki/MADI), [Dante](https://en.wikipedia.org/wiki/Dante_%28networking%29), …), but those are (mostly) locked down and expensive. Reusing an existing protocol (like Behringer's Ultranet) is an easy way to design a futureproof(-ish) system while ensuring compatibility with many existing devices, all the while learning about the intricaties of system. This makes me more aware of the limits of a setup and lets me understand why things go wrong and how to bodge said things when it breaks 1h before go-time 😢.
 
@@ -51,7 +51,7 @@ Therefore, please welcome to the stage: <b>HyperNet</b> 🥁
 At the end of [part 1](/ultranet-adventures-part-1/), everything was technically working, but not exactly production-ready: 
 - 🧮 Channel indexing is still an issue; for some reason, real Ultranet receivers are still not fully compatible with HyperNet, and the HyperNet receiver had indexing issues.
 - 🔌 The audio frontends of the DACs and ADCs were mediocre at best.
-- 🧩 The PCB layout design was oriented more as a devboard than a real product
+- 🧩 The PCB layout design was made to be a prototype devboard rather than a real product
 - 📦 The project was a bare PCB without any case
 
 
@@ -101,16 +101,16 @@ Reword
 
 The initial assumption that Ultranet squishes 🗜️ eight 48 kHz audio channels into a single 192 kHz AES3 stream turned out to be correct. In other words, the eight channels are interleaved into one high-rate AES3-like stream so that each 48 kHz channel fits into the 192 kHz timing without resampling.
 
-However, initially, I assumed that Ultranet relied on the AES3 B-frame for channel synchronization, which seemed logical since the protocol is based on AES3 🤔. That assumption was partly correct; it allowed me to receive audio, but it failed when it came to consistent channel indexing while receiving. At the same time, the transmitter either produced misaligned channels or didn't work whatsoever, revealing that the actual synchronization mechanism had to be different 🫤.
+However, initially, I assumed that Ultranet relied on the AES3 B-frame for channel synchronization, which seemed like a good idea since the protocol is based on AES3 🤔. That assumption was partly correct; it allowed me to receive audio, but it failed when it came to consistent channel indexing while receiving. At the same time, the transmitter either produced misaligned channels or didn't work whatsoever. This meant that the actual synchronization mechanism had to be different 🤨.
 
 ## The P16-M tangent
-This is when Christian Nöding contacted me again. He was trying to write the code for the Ultranet output of the X32 for the [OpenX32](https://github.com/OpenMixerProject/OpenX32) project.
+This is when Christian Nöding contacted me again. He was working on the Ultranet output of the X32 for the [OpenX32](https://github.com/OpenMixerProject/OpenX32) project. I promptly sent him my code for him to try!
 
 He tested it on a P16-M, and all he got was garbage 🗑️, random noise instead of usable audio. That immediately caught my attention, because if his implementation didn't work on an actual Behringer device, something was probably very wrong in our understanding of the protocol. 
 
-By pure luck 🍀, I stumbled across a used P16-M listed for almost nothing on my local marketplace, so I grabbed it as soon as I could. Once it arrived, I hooked it up to my setup (the same one that worked flawlessly with the TFX122M-AN) and got the same garbage output. That was both good and bad news: on one hand it meant my implementation wasn't truly compatible, but on the other hand I now had a reliable way to reproduce the problem on real hardware and dig deeper into what was actually going on.
+By pure luck 🍀, I stumbled across a used P16-M listed for almost nothing on my local marketplace, so I grabbed it as soon as I could. Once it arrived, I hooked it up to my setup (the same one that worked flawlessly with the TFX122M-AN) and got the same garbage output. That was both good and bad news, on one hand it meant my implementation wasn't truly compatible, but on the other hand I now had a reliable way to reproduce the problem on real hardware and could dig deeper into what was actually going on.
 
-I then spent quite a while trying to debug things; at some point I got close and got channels 1-2 working, but after 2 days on the problem I had enought and decided that I wasn't going to test things blindly anymore 👀.
+I then spent quite a while trying to debug things. At some point I got close and got channels 1-2 working, but after 2 days on the problem I had enought and decided that I wasn't going to test things blindly anymore 👀.
 
 After a break, I promptly started to disassemble the mixer. At first glance/probe, I was surprised that none of the AK4114 appeared to have their B-frame pins connected to the XMOS chip 🤔. This is what set off alarm bells. I promptly soldered jumper wires on the SPI bus used to configure the chips and was again surprised by how little communication there was:
 
@@ -120,19 +120,19 @@ After a quick read of the datasheet, it turns out that their config is very stan
 
 I then snooped on the I2S output and B-frame output, which looked like what you would expect. I was so determined to find something weird that I went as far as managing to rebuild a WAV file from a 20-second capture done with the logic analyzer, which also worked just fine 🔊.
 
-Relunctantly, I decided that I'll learn things by desoldering the chips 🔥. This confirmed that the only thing connected to the XMOS chip was the I2S signal and the "valid" output. This effectively confirmed that **synchronization was in no way tied to the B-frame,** and as the channel and user bits weren't connected either, it left only one place where the XMOS chip could sync: **the sample data**
+Relunctantly, I decided that I might learn something by desoldering the chips 🔥. This confirmed that the only thing connected to the XMOS chip was the I2S signal and the "valid" output. This effectively confirmed that **synchronization was in no way tied to the B-frame,** and as the channel and user bits weren't connected either, it left only one place where the XMOS chip could sync: **the sample data**
 
 ## Back to research
 
 Now, a sync signal in the sample data sounds wrong. How the hell do they fit 24-bit audio + sync into 24 time-slots 🤨 ????
 
-After some google foo, it turns out that they don't. Ultranet simply is not 24-bit it is **22-bit**.<br>
+After some google foo, it turns out that they don't. Ultranet is simply not 24-bit it's **22-bit**.<br>
 In hindsight, I should have noticed it earlier; most quick start guides from Behringer mention that their A/D conversion is 24-bit, but they do not mention anything about the actual data.
 
 However the guide of some devices (like the [DL32](https://www.la-bs.com/ObjetsMultimedia/42473/FR/DL32_MIDAS_me.pdf)) has an interesting line: 
 > ULTRANET networking @ 48 or 44.1 kHz, 22-bit PCM
 
-At the time I thought that was a typo 🤦, but I know realise that it is indeed correct. While the P16-M (and other devices that receive Ultranet) might use 24 bits for their internal signal processing and the digital-to-analog conversion, the actual digital data transmitted over Ultranet is only 22-bit. 
+At the time I thought that was a typo 🤦, but I know realise that it is indeed correct. While the P16-M (and other devices that receive Ultranet) probably use 24 bits for their internal signal processing and the digital-to-analog conversion, the actual digital data transmitted over Ultranet is only 22-bit. 
 
 So, what is in those two bits? A bit more digging later, I found a few things on the web:
  - https://reverseengineering.stackexchange.com/a/11337
@@ -143,9 +143,13 @@ All of these projects implement some sort of sync based on the sample data 🤯.
 
 ## Ultranet sync & channel index
 
-Ok enought teasing, as I said before, the block structure was already correct (the channel index starting from one is pure choice for this article):
+Ok enought teasing, as I said before, since the data itself was correct and I was just receiving channels with an offset, it meant that the block structure was already correct since:
 
 ![Ultranet block structure](diagrams/ultranet-block-structure.drawio.png "Ultranet block structure")
+
+{{<warn>}}
+Channel 1 (read subframe 1) being the first in each frame is an editorial choice for this article, the position of the subframe in the frame is not relevant for Ultranet
+{{</warn>}}
 
 The subframe however is a bit different:
 
@@ -176,7 +180,7 @@ As you can see, it's stupidly simple, and after a quick analysis with the logic 
 
 The choice of two bits is interesting, they could have used a third bit but instead chose to group them by two. That grouping explains why the channels offset always moved two at the same time 🙄.
 
-It's also interesting that TFX122M-AN worked at all last time 🤔. It must use a different sync "procedure" than the P16-M.
+I also find it very intriguing that the TFX122M-AN worked at all last time 🤔. It must use a different sync "procedure" than the P16-M 🤷‍♂️.
 
 This is superb news 🥳 because while we lose some fidelity the implementation just became WAY easier than using the B-frame signal:
  - To receive, you just have to wait for two samples that have the same index and output them to the correct DAC. 
@@ -186,9 +190,10 @@ What's funny is that the channel status bits are still sometimes needed. I still
 
 ## What's new ?
 
-Now that I've set the record straight, let's actually start with part 2. After wrestling with the prototype implementation, it's now time to clean up the move beyond the spaghetti. This round of changes is all about making the design more robust, modular, and rack-friendly. In short: less "prototype held together with hopes and prayers" more "something I can actually trust".  
+Now that I've set the record straight, let's actually start with part 2. After wrestling with the implementation, it's now time to clean up the move beyond the code spaghetti. This round of changes is all about making the design more robust, modular, and rack-friendly. In short: less "prototype held together with hopes and prayers" more "something I can actually trust".  
 
-When I did my last PCB order I snuck in a devboard for the [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf), a `216-kHz Digital Audio Interface Transceiver`. This chip is similar to the AK4114 that's being used for almost every Ultranet product I've seen so far. It's being used to replace the PLL1707 👋. This chip was responsible for generating the 24.576MHz system clock that the FPGA used to decode and generate the AES3 data streams. I'll talk about it later but this has been replaced by the DIX9211, which can output a buffered clock from its crystal! In fact, the receiver entierly run on the I2S clocks (which means I support both 48k and 44.1k 🤯), only the transmitter needs a separate clock!
+When I did my last PCB order I snuck in a devboard for the [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf), a `216-kHz Digital Audio Interface Transceiver`. This chip is similar to the AK4114 that's being used for almost every Ultranet product I've seen so far. It's being partly used to replace the PLL1707 👋, it was responsible for generating the 24.576 MHz system clock that the FPGA used to decode and generate the AES3 data streams. <br>
+I'll talk about it later but this chip also replaces the AES3 receiver inside the FPGA, which simplifies a bunch of things.
 
 Also new are new modular DAC and ADC boards with proper analog frontends. This ensures flexibility, upgradability and reparability within the system. Imagine haveing to rebuild the whole board because someone blew-up an input 🤦
 
@@ -196,7 +201,7 @@ I'm also introducing an RP2040 as a supervisor MCU. It will be used to set up ev
 
 A much-needed improvement is a proper 1U case and CAD models to fit everything properly (okay, okay you got me, a shelf with 3d printed faceplates, I promise it looks good and feels solid 😉, you'll see!)
 
-The last thing I need to mention is the move from fully opensource implementations to using built-in IPs inside my FPGA. Specifically, the transmitter is now using the [Gowin SPDIF TX](https://www.gowinsemi.com/en/support/ip_detail/194/) IP. While I do believe that a fully open implementation would be preferable. I also believe that using the best tools for the job is the better route to take. I'm still very novice in the FPGA world and while I could probably fix the previous implementation to make it do what I want, it's just easier to use something that already works. Also while this IP is proprietary it is free so … 🤷
+The last thing I need to mention is the move from fully opensource implementations to using built-in IPs inside my FPGA. Specifically, the transmitter is now using the [Gowin SPDIF TX](https://www.gowinsemi.com/en/support/ip_detail/194/) IP. While I do believe that a fully open implementation would be preferable. I also believe that using the best tools for the job is the better route to take. I'm still very novice in the FPGA world and while I could probably fix the previous implementation to make it do what I want, for me, it was just "easier" to use something that already works. Also while this IP is proprietary it is free so … 🤷
 
 ## Electronics redesign
 ### DAC
@@ -223,7 +228,7 @@ I also set a specific size limit to the PCB so that I could start 3d modeling �
 ![DAC 3D Render](images/pcbnew_2025-10-10_22-55-03_db6c8e0c-b597-4106-8443-9c52e056d361.png "DAC 3D Render")
 
 ### ADC
-The input side follows the same philosophy 🎓: keep the same ADC chip, but redesign the analog front-end for balanced operation. As said before, balanced inputs are essential to reject interference and ground noise. Since balanced inputs are used, the next "logical" step was adding phantom power. While the new board doesn't feature any configurable pre-amplifier (you could technically change the gain of the amp) to boost microphones and whatnot, I figured that adding phantom power couldn't hurt.
+The input side follows the same philosophy 🎓: keep the same ADC chip, but redesign the analog front-end for balanced operation. As said before, balanced inputs are essential to reject interference and ground noise. Since XLR inputs are used, the next "logical" step was adding phantom power. While the new board doesn't feature any configurable pre-amplifier (you could technically change the gain of the amp) to boost microphones and whatnot, I figured that adding phantom power couldn't hurt.
 
 If I don't need it I can simply disable it, but if I want to use microphones I can simply use inline pre-amplifiers like the [Klark Teknik Mic Booster CT1](https://www.thomann.de/lu/klark_teknik_mic_booster_ct1.htm), which is a `compact dynamic microphone booster with high-quality preamps`. Super easy and pretty cheap!
 
@@ -233,11 +238,11 @@ It does add some complexity (especially since this modification came later which
 
 As you might have guessed there's also a go-to IC for this application, the INA137. But same as before, this chip is far too expensive 💸 (less so but still). Instead I choose to use the OPA1677.
 
-But first we need to talk about what the hell phantom power is 👻. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn't disturb the differential audio signal. Fortunately, IEC 61938:2018 outlines the technical specifications. Basically the max current is 10mA and you only need to connect a 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24. If you would like to learn more about phantom I can recommend you read this page: https://sound-au.com/articles/p-48.htm
+But first we need to talk about what the hell phantom power is 👻. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn't disturb the differential audio signal. Fortunately, there's a lot of places online to get the technical specifications (IEC 61938:2018 being the official document). Basically the max current is 10mA and you only need to connect a 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24. If you would like to learn more about phantom I can recommend you read this page: https://sound-au.com/articles/p-48.htm
 
 Note that the specification says 6.81k but I instead used 6.8k, this is because apparently, at the time getting 6.8k resistors with a low tolerance was complicated 🤷. By choosing 6.81k the specifications ensured the proper tolerance. However these days it isn't really a problem anymore.
 
-Just after this is the protection circuit, first the signal goes through DC-blocking caps followed by protection resistors and protection diodes. This circuit ensures that the signal will never have a voltage so far from the absolute maximum that it's going to break something. You'll notice that they are marked as DNP 🤔. It turns out they clamped the signal too much so I just removed them. If you have suggestions please let me know!
+Just after this is the protection circuit, first the signal goes through DC-blocking caps followed by protection resistors and protection diodes. This circuit ensures that the signal will never have a voltage so far from the absolute maximum that it's going to break something. You'll notice that they are marked as DNP 🤔. It turns out they clamped the signal too much so I just removed them and I'll be careful about what I plug in. If you have suggestions please let me know!
 
 The signal is then biased to 2.5V and fed to an OPA1677 configured as a simple buffer after which the signal goes through some passives and then goes to the PCM1808!
 
@@ -254,60 +259,43 @@ The mainboard changed a lot, in fact it changed twice while I started the writin
 
 ![Main board render](images/HyperNet-2-MainBoard.png "Main board render")
 
-As you can see the SFP, and Hypernet ports are basically unchanged. 
+As you might be able to see the SFP, and Ultranet ports on the board are basically unchanged. 
+They don't really need to change, they worked perfectly on the prototype. Only the Ultranet TX and RX ports are swapped to facilitate routing and that's it!
 
 This also applies to the FPGA, which is still the same Tang 9k that I used last time. It works very well and is easy to use so why change it 🙂!
 
-The whole right side of the board is dedicated to power management (3.3v digital, 5v analog and 48v phantom) ⚡.
+The whole right side of the board is dedicated to power management (3.3v digital, 5v analog and 48v phantom) ⚡. Each input has its own switch to turn on phantom instead of a global one.
 
-The most significant change is probably the IDC ports to connect the ADCs and DACs boards. I choose IDC connectors mainly because they are very resilient, cheap and widely used. That said if I were to redesign everything I would use FFC connectors to reduce the size 📏. These ports provide:
+The most significant change are the IDC ports to connect the ADCs and DACs boards. I choose IDC connectors mainly because they are very resilient, cheap and widely used. That said if I were to redesign everything I would probably use FFC connectors to reduce the size 📏. These ports provide:
   - An I2C port 💬 (Unused and unpopulated for my boards)
-  - An I2S port 🔉
-  - Two GPIOs (Only used for the DAC connector to carry the mute signal 🔇) 
+  - An I2S port 🔉 (different pinout for DACs and ADCs to facilitate routing)
+  - Two GPIOs (Only used in the DAC connector to carry the mute signal 🔇) 
   - 3.3V Digital power ⚡
   - 5V Analog power ⚡
 
-
-
-#### Digital interface transceiver: DIX9211
-
-Which brings me to the DIX9211. This chip is basically an AES3/SPDIF receiver that spits out I2S. This simplifies so much of the FPGA logic since receiving I2S is **way** easier than receiving AES3!
-
-![DIX9211 Schematic](images/kicad_2025-10-10_15-08-45_254f1375-0e93-4b32-9716-21037cc8f77d.png "DIX9211 Schematic")
-
-As I'll explain later I'm also using it as a "biphase router" (a bit like in the P16-M, actually). I can configure what input port is used as the input for the DIR, and I can also choose which input port is used for the biphase output.
-
-This gives a huge amount of flexibility to the system!
-
-{{< todo >}} Maybe add a few words {{< /todo >}}
-
-#### Supervisor MCU
-
-The supervisor MCU is a raspberry pico, I could have used the chip directly but to be honest it's just easier and cheaper to do it that way 🤷. The only use of this chip is to read the 8 DIP switches and configure the DIX9211.
-
-In the future I might be able to use it as audio bridge or something. I added an SPI bus between the FPGA and the pico that I could use to stream audio or something.
-
-{{< todo >}} Schematic, implementation details, etc… {{< /todo >}}
-
-#### High level view of the mainboard
-
-
-{{< todo >}} Small explanation {{< /todo >}}
+Here is a high-level view of the schematic that shows how everything connects to each other:
 
 ![Main board high-level view](images/HyperNet-2-MainBoard-Schematic.png "Main board high-level view")
 
+The last thing that needs a special mention is the DIX9211. This chip is basically an AES3/SPDIF receiver that spits out I2S. This simplifies so much of the FPGA logic since receiving I2S is **way** easier than receiving AES3!
+
+I'm configuring with a raspberry pico and a few DIP-switches. I also stole the pass-through idea from the P16-M and use the chip as a "biphase router" of sorts. I can configure what input port is used as the input for the DIR, and I can also choose which input port is used for the biphase output. This offers a lot of flexibility, for example I could use my project to receive from the Ultranet port and at the same time send audio over the fiber link!
+
+This chip was really a no-brainer compared to the PLL1707 that I used before, it adds easier decoding, biphase routing, clocks, etc... for a few cents more. Massive boost in flexibility for the system!
+
 
 ## HDL redesign
-### Clocks & Sync
 ### Receiver
 
 Here is a diagram showing how the receiver works from a high-level view:
 
 ![High-level view of the HyperNet receiver](diagrams/receiver.drawio.png "High-level view of the HyperNet receiver")
 
-The demuxer itself is the interesting part, it's is pretty simple. You can find parts of the code below. Basically it can be summarized to, loads bits from DOUT on the BCLK rising edge and when LRCLK transitions, saving the sample. When two successive samples have the same LSB, output them to the correct port. 
+Since the DIX9211 outputs I2S it's pretty simple. The demuxer is the interesting part 🧐. You can find parts of the code below. Basically it can be summarized to, loading bits from `sdata` on the `bclk` rising edge and when `lrclk` transitions, saving the sample. When two successive samples have the same LSB, output them to their respective ports. 
 
-There's a bit more stuff to handle, like reset and signaling but that's the basic idea.
+There's a bit of clock management to get the proper speeds for the four I2S outputs and a "small" block to make sure the I2S clocks are somewhat locked to the receiver  (which makes sure the samples aren't loaded when written) but that's it.
+
+After that, the signals go to an I2S transmitter block that has been modified to deal with four outputs at once.
 
 ```vhdl
 -- Detect LR transition (channel boundary)
@@ -390,7 +378,11 @@ Here is a diagram showing how the transmitter works from a high-level view:
 
 ![High-level view of the HyperNet transmitter](diagrams/transmitter.drawio.png "High-level view of the HyperNet transmitter")
 
-As you can see it WAY more complicated than the receiver. This is mainly because I'm using a pre-made FIFO and S/PDIF transmitter block, there's not much code to show besides the diagram but the most "interesting" part is the mux that pushes a burst of eight audio samples to the FIFO. Basically it waits for the signal that says that the FIFO is almost empty (eg, finished with the last batch) and pushes the samples:
+As you can see it WAY more complicated than the receiver. This is mainly because I'm using a pre-made FIFO and S/PDIF transmitter block, there's not much code to show besides the diagram but the most "interesting" part is the mux that pushes a burst of eight audio samples to the FIFO. Basically it waits for the signal that says that the FIFO is almost empty (eg, finished with the last batch) and pushes the samples.
+
+As before there's a bit of logic to deal with the clock signals and their synchronization to the transmitter but that part is pretty easy.
+
+There's also a block to deal with the channel status, I don't really know why it's needed but I simply use what the DL16 is sending.
 
 ```vhdl
 push_data : process(clk) begin
@@ -440,11 +432,11 @@ end process;
 
 ## Firmware
 
-Since I choose to go with the DIX9211, I need a way to control it 🎛️. This could have been done in the FPGA, however I didn't feel like implementing it 🥱 so I decided to use a raspberry pi pico.
+Since I choose to go with the DIX9211, I need a way to control it 🎛️. This could have been done in the FPGA, however I didn't feel like implementing I2C by hand 🥱 so I decided to use a raspberry pi pico. It takes up a bunch of space on the PCB, but it's way faster to work with.
 
-Right now it's only configuring the chip, but as I said earlier, I did connect an SPI bus with two extra pins to the FPGA, this could be used to output/input audio over USB, for example.
+Right now it's only configuring the chip, but as I said earlier, I did connect an SPI bus with two extra pins to the FPGA, this could be used for many applications ranging from basic config to audio input/output over USB.
 
-I also alluded to earlier that I use the DIX9211 as a router 🔀, this is configured by the supervisor from some DIP switches:
+I also alluded to earlier that, like the P16-M, I use the DIX9211 as a router 🔀, this is configured by the supervisor from some DIP switches:
 
 | Config      | Behavior                                                           |
 |-------------|--------------------------------------------------------------------|
@@ -462,7 +454,7 @@ I also alluded to earlier that I use the DIX9211 as a router 🔀, this is confi
 There are a few additional registers to configure. The full config can be seen on the setup script bellow.<br>
 Again, I didn't feel like setting up a full C++ project with the pico-sdk (or even Arduino) so I just left Circuit Python and made it so that the script runs at boot. This has the downside of a small 500ms delay before it's configured after reset but I can live with that 🤷!
 
-It could be improved by periodically watching the inputs 👀 and reconfiguring accordingly which would remove the need to push the reset button after changing the config.
+It could be improved by periodically watching the inputs 👀 and reconfiguring accordingly. It would remove the need to push the reset button after changing the config but then again I was lazy for this part of the project.
 
 ```python
 import board
@@ -542,7 +534,7 @@ write(device_dix, 0x35, [config_outsrc]) # RECOUT0 Output Biphase Source Select
 
 ## 3D Design
 
-Designing the physical enclosure for this project turned out to be almost as challenging as the electronics 😫. 
+Designing the physical enclosure for this project turned out to be quite fun 😫. 
 I would rather not spend a bunch of money on a custom rack case, so instead I opted for the Scrooge McDuck 🦆 solution and used a standard 1U rack shelf. I've used this method in the past for my SDI over fiber project so I knew it could work.
 
 It's far from the best solution, but once everything is assembled it's strong and most importantly very affordable. Using a shelf also means I don't have to worry about a custom front-panel or things like that. Instead I can just 3D-print the front and rear plates myself 👍. 
@@ -551,25 +543,25 @@ Since the DAC and ADC modules have the same size, connector placement and mounti
 
 ![Shelf mounting system](images/stagebox_aluminium_bars.jpg "Shelf mounting system")
 
-I initially thought it wouldn't be enough and bought some double-sided tape. To my surprise it turned out that it is surprisingly strong once all the holders are present 💪! My design made it so that 8 holders don't fill the full width, there's about a centimeter left that I use for status LEDs (like power, active, sync, ….).
+I initially thought it wouldn't be enough and bought some strong double-sided tape. To my surprise it turned out that it is surprisingly strong once all the holders are present 💪! My design made it so that 8 holders don't fill the full width, there's about a centimeter left that I use for status LEDs (like power, active, sync, ….).
 
 ### DAC & ADC Holder
 
-For the DAC/ADC holder, I designed a compact holder on which I can slide the board in from the rear and lock it against the faceplate with four M3 screws into the XLR connectors. Additionally, there are three M3 screws on the PCB itself, this increases the overall rigidity of the holder and makes sure it won't break when plugging in cables.
+For the DAC/ADC holder, I designed a compact holder in which I can slide the PCB in from the rear and lock it against the faceplate with four M3 screws into the XLR connectors. Additionally, there are three M3 screws on the PCB itself, this increases the overall rigidity of the holder and makes sure it won't break when plugging in cables.
 
 {{< gallery >}}
 images/PXL_20251025_223201201.PORTRAIT.jpg "DAC with the holder (Front)"
 images/PXL_20251025_223156227.PORTRAIT.jpg "DAC with the holder (Back)"
 {{< /gallery >}}
 
-The only difference between the ADC and DAC holder is that the ADC one has an extra hole near each XLR connector for an LED, which will indicate the presence of phantom power 💡.
+The only difference between the ADC and DAC holder is that the ADC one has an extra hole near each XLR connector for an LED, which will indicate the presence of phantom power 💡. Soldering the LEDs was quite annoying due to the short leads, so if anyone knows where I can get LEDs with longer leads I would appreciate knowing about it!
 
 {{< gallery >}}
 images/PXL_20251025_223232217.PORTRAIT.jpg "ADC with the holder (Front)"
 images/PXL_20251025_223243798.PORTRAIT.jpg "ADC with the holder (Back)"
 {{< /gallery >}}
 
-{{< todo >}} Dust covers {{< /todo >}}
+I also designed some dust covers that you will see later. They slide in the dovetail-like slot of the sled. While it's by no means water-proof (or even dust-proof) it will stop things from touching the PCB directly which is the most important part for me.
 
 ### Main board
 
@@ -580,29 +572,39 @@ images/PXL_20251025_220910286.PORTRAIT.jpg "Mainboard with bottom plate"
 images/PXL_20251025_223110398.PORTRAIT.jpg "Mainboard with bottom and top plate"
 {{< /gallery >}}
 
+I left the FPGA in the open because it's the only part on headers because I might use it for other projects in the future!
+
 ### Assembly
 
 And it's finally time for assembly 🤩!
 
 I started by putting the four DACs and four ADCs on their respective holders and sliding them onto the shelf:
 
-{{< todo >}} Photo with the sleds only {{< /todo >}}
+{{< gallery >}}
+images/PXL_20251027_181901509.RAW-01.COVER.jpg "Final assembly (selds only, front)"
+images/PXL_20251027_181912164.RAW-01.COVER.jpg "Final assembly (selds only, back)"
+{{< /gallery >}}
 
 I then stuck the mainboard (and power supply) with some strong double-sided tape:
 
-{{< todo >}} Photo with the sleds , mainboard and power supply {{< /todo >}}
+{{< gallery >}}
+images/PXL_20251027_182723208.RAW-01.COVER.jpg "Final assembly (all components, front)"
+images/PXL_20251027_182734890.RAW-01.COVER.jpg "Final assembly (all components, back)"
+{{< /gallery >}}
 
 And finally I made "a few" custom cables to make sure everything looks neat:
 
-{{< todo >}} Final product gallery{{< /todo >}}
-
+{{< gallery >}} 
+images/PXL_20251027_182947390.RAW-01.COVER.jpg "Final assembly (with cables, front)"
+images/PXL_20251027_183003153.RAW-01.COVER.jpg "Final assembly (with cables, back)"
+{{< /gallery >}}
 
 ## Validation
 
 Validation was quite fun because I discovered a few issues 😢:
 > *These issues have bee corrected in the schematics above*
-- Audio was leaking to the 2 channels of each DAC board.
-  - This turned out to be caused by my 2.5V bias supply, I used a simple divider connected to both channels, I should have used either a 2.5V LDO or what I ended up doing was adding a 2nd voltage divider just for the 2nd channel.
+- Audio was leaking between the 2 channels of each DAC board.
+  - This turned out to be caused by my 2.5V bias supply, I used a simple divider connected to both channels, I should have used either a 2.5V LDO or what I ended up doing, which was adding a 2nd voltage divider just for the 2nd channel.
 - Gain issue with the DAC board:
   - Solved it by using a 0-ohm resistor for the feedback resistor of the opamp for positive output instead of the 10k I had before.
 - Same gain issue with the ADC board:
@@ -610,7 +612,18 @@ Validation was quite fun because I discovered a few issues 😢:
 - Fiber input not working on the mainboard:
   - Missing 100k pull down resistor on the negative signal of the differential pair comming from the SFP.
 
-But after solving these, everything worked 🥹 ! Lets see the demo:
+But after solving all of these, everything worked 🥳 ! 
+
+Thanks to my dad who's an actual sound engineer, and the Smaart software, I even managed to do some actual measurment 📏:
+
+![Measurement done with Smaart V6](images/Smart4.JPG "Measurement done with Smaart V6")
+
+The signal is flat overall except in the lower frequencies. I suspect this is due to my choice of caps for the DAC 🤔 but it's more than good enought for me (in fact it's better than the what I measured at the output of the P16-M).
+
+The software also gave me an estimate for latency, which is **0.56 ms** (it's the equivalent of sitting ~20 cm from a speaker) which is again more than good enough for my application!
+
+Ok enough text, let's see the demo 📹:
+
 ## Demo
 ### Hypernet to Hypernet
 {{< todo >}} Video {{< /todo >}}
