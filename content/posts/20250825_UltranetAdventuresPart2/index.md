@@ -1,10 +1,10 @@
 ---
 slug: ultranet-adventures-part-2
 title: "Ultranet adventures part 2: Stagebox!"
-draft: true
+draft: false
 featured: false
-date: 2025-08-25T00:00:00.000Z
-image: "images/cover.jpg"
+date: 2025-11-14T23:00:00.000Z
+image: "images/cover2.jpg"
 tags:
   - electronics
   - open-source
@@ -32,13 +32,13 @@ This is a continuation of an already stupidly long adventure; you can read <a hr
 
 Welcome back! 
 
-In the last article, I heavily focused on understanding & reverse-engineering Ultranet and getting a proof of concept working on FPGA. It was mostly about the protocol side: understanding the physical side, how data flows, timings, and wrestling with bits until both transmitter and receiver behaved correctly. As we'll see later, it turns out that I was wrong about the implementation!
+In the last article, I heavily focused on understanding/reverse-engineering Ultranet and getting a proof of concept working on FPGA. It was mostly about the protocol side: understanding the physical side, how data flows, timings, and wrestling with bits until both transmitter and receiver behaved correctly. As we'll see later, it turns out that I was wrong about the implementation!
 
 In this article, I'm shifting gears to design a product that I'd actually use in live production.
 
 The whole point of this project is to create an 8-channel stagebox for non-critical auxiliary audio lines that I will use in my live production. I recently received the dates and song list for the 2026 "tour" so timelines on multiple projects, including this one, got very real 🤩! 
 
-As discussed in [part 1](/ultranet-adventures-part-1/), there are many options on the market ([ADAT](https://en.wikipedia.org/wiki/ADAT_Lightpipe), [MADI](https://en.wikipedia.org/wiki/MADI), [Dante](https://en.wikipedia.org/wiki/Dante_%28networking%29), …), but those are (mostly) locked down and expensive. Reusing an existing protocol (like Behringer's Ultranet) is an easy way to design a futureproof(-ish) system while ensuring compatibility with many existing devices, all the while learning about the intricacies of the system. This makes me more aware of the limits of a setup and lets me understand why things go wrong and how to bodge said things when it breaks 1h before go-time 😢.
+As discussed in [part 1](/ultranet-adventures-part-1/), there are many options on the market ([ADAT](https://en.wikipedia.org/wiki/ADAT_Lightpipe), [MADI](https://en.wikipedia.org/wiki/MADI), [Dante](https://en.wikipedia.org/wiki/Dante_%28networking%29), …), but those are (mostly) locked down and expensive. Reusing an existing protocol (like Behringer's Ultranet) is an easy way to design a futureproof(-ish) system while ensuring compatibility with many existing devices, all while learning about the intricacies of the system. This makes me more aware of the limits of a setup and lets me understand why things go wrong and how to bodge said things when it breaks 1h before go-time 😢.
 
 {{< warn >}}
 Due to various reasons, I will stop referring to my project as Ultranet.
@@ -84,9 +84,9 @@ The preamble can be one of three values:
 
 |  Name  | Timeslot (Last was 0) | Timeslot (Last was 1) | Function                                                                     |
 |:------:|:---------------------:|:---------------------:|------------------------------------------------------------------------------|
-| Z or B |        11101000       |        00010111       | Marks a word for channel A (left) and the start of an audio block            |
-| X or M |        11100010       |        00011101       | Marks a word for channel A (left), besides at the start of an audio block |
-| Y or W |        11100100       |        00011011       | Marks a word for channel B (right).                                          |
+| Z or B |        11101000       |        00010111       | Marks a word for channel A (left), and the **start of an audio block**       |
+| X or M |        11100010       |        00011101       | Marks a word for channel A (left)                                            |
+| Y or W |        11100100       |        00011011       | Marks a word for channel B (right)                                           |
 
 
 Between the AES3 and S/PDIF standards, the contents of the 192-bit channel status word differ significantly, although they mutually agree that the first channel status bit distinguishes between the two 🤝. In the case of AES3, the standard describes, in detail, the function of each bit.
@@ -102,9 +102,9 @@ However, initially, I assumed that Ultranet relied on the AES3 B-frame for chann
 ### The P16-M tangent
 This is when Christian Nöding contacted me again. He was working on the Ultranet output of the X32 for the [OpenX32](https://github.com/OpenMixerProject/OpenX32) project. I promptly sent him my code to try!
 
-He tested it on a P16-M, and all he got was garbage 🗑️, random noise instead of usable audio. That immediately caught my attention. If his implementation didn't work on an actual Behringer device, something clearly wrong in our understanding of the protocol. 
+He tested it on a P16-M, and all he got was garbage 🗑️, random noise instead of usable audio. That immediately caught my attention. If his implementation didn't work on an actual Behringer device, something was clearly wrong in our understanding of the protocol. 
 
-By pure luck 🍀, I stumbled across a used P16-M listed for almost nothing on my local marketplace, so I grabbed it as soon as I could. Once it arrived, I hooked it up to my setup (the same one that worked flawlessly with the TFX122M-AN) and got the same garbage output. That was both good and bad news. On one hand it meant my implementation wasn't truly compatible, but on the other hand I now had a reliable way to reproduce the problem on real hardware and could dig deeper into what was actually going on.
+By pure luck 🍀, I stumbled across a used P16-M listed for almost nothing on my local marketplace, so I grabbed it as soon as I could. Once it arrived, I hooked it up to my setup (the same one that worked flawlessly with the TFX122M-AN) and got the same garbage output. That was both good and bad news. On one hand it meant my implementation wasn't truly compatible, but on the other hand, now, I could reproduce the problem on real hardware and dig deeper into what was actually going on.
 
 I then spent quite a while trying to debug things. At some point I got close and got channels 1-2 working, but after 2 days on the problem I had enough and decided that I wasn't going to test things blindly anymore 👀.
 
@@ -120,9 +120,9 @@ Reluctantly, I decided that I might learn something by desoldering the chips �
 
 ### Back to research
 
-Now, a sync signal in the sample data sounds wrong. How the hell do they fit 24-bit audio + sync into 24 time-slots 🤨 ????
+Now, a sync signal in the sample data sounds wrong. How the hell did they fit 24-bit audio + sync into 24 time-slots 🤨 ????
 
-After some google foo, it turns out that they don't. Ultranet is simply not 24-bit; it's **22-bit**.<br>
+After some google-fu, it turns out that they don't. Ultranet doesn't use 24-bit PCM, instead it uses **22-bit PCM**.<br>
 In hindsight, I should have noticed it earlier; most quick start guides from Behringer mention that their A/D conversion is 24-bit, but they do not mention anything about the actual data.
 
 However the guide of some devices (like the [DL32](https://www.la-bs.com/ObjetsMultimedia/42473/FR/DL32_MIDAS_me.pdf)) has an interesting line: 
@@ -184,16 +184,16 @@ This is superb news 🥳 because while we lose some fidelity, the implementation
 
 What's funny is that the channel status bits are still sometimes needed. I still have no idea what they mean, but for some reason it doesn't *always* work without them. Since they are not used anywhere, I guess that it's a simple pattern that is enough for the AK4114 to start decoding 🤷.
 
-## What's new ?
+## What's new?s
 
-Now that I've set the record straight, let's actually start with part 2. After wrestling with the implementation, it's now time to clean up the move beyond the code spaghetti. This round of changes is all about making the design more robust, modular, and rack-friendly. In short: less "prototype held together with hopes and prayers", more "something I can trust".  
+Now that I've set the record straight, let's actually start with part 2. After wrestling with the implementation, it's now time to clean up the move beyond the code spaghetti. This round of changes is all about making the design more robust, modular, and rack-friendly. In short: less "prototype held together with hopes and prayers", and more "something I can trust".  
 
-When I did my last PCB order, I snuck in a devboard for the [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf), a `216-kHz Digital Audio Interface Transceiver`. This chip is similar to the AK4114 that's being used for almost every Ultranet product I've seen so far. It's being partly used to replace the PLL1707 👋. It was responsible for generating the 24.576 MHz system clock that the FPGA used to decode and generate the AES3 data streams. <br>
+When I did my last PCB order, I snuck in a devboard for the [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf), a `216-kHz Digital Audio Interface Transceiver`. This chip is similar to the AK4114 that's being used for almost every Ultranet product I've seen so far. It's partly used to replace the PLL1707 👋. It was responsible for generating the 24.576 MHz system clock that the FPGA used to decode and generate the AES3 data streams. <br>
 I'll talk about it later, but this chip also replaces the AES3 receiver inside the FPGA, which simplifies a bunch of things.
 
-Also new are new modular DAC and ADC boards with proper analog frontends. This ensures flexibility, upgradability and reparability within the system. Imagine having to rebuild the whole board because someone blew up an input 🤦
+Also new, are modular DAC and ADC boards with proper analog frontends. This ensures flexibility, upgradability and reparability within the system. Imagine having to rebuild the whole board because someone blew up an input 🤦
 
-I'm also introducing an RP2040 as a supervisor MCU. It will be used to set up everything to its proper state and interface between the FPGA and other components. This project is at its core an 8-in 8-out signal processor with interconnects, so it could be used for much more than a digital snake!
+In addition, I'm introducing an RP2040 as a supervisor MCU. It will be used to set up everything to its proper state and interface between the FPGA and other components. At its core, this project is an 8-in 8-out signal processor with interconnects, so it could be used for much more than a digital snake!
 
 A much-needed improvement is a proper 1U case and CAD models to fit everything properly (okay, okay, you got me, a shelf with 3D-printed faceplates, I promise it looks good and feels solid 😉, you'll see!).
 
@@ -234,7 +234,7 @@ It does add some complexity (especially since this modification came later, whic
 
 As you might have guessed, there's also a go-to IC for this application, the INA137. But same as before, this chip is far too expensive 💸 (less so but still). Instead I choose to use the OPA1677.
 
-But first, we need to talk about what the hell phantom power is 👻. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn't disturb the differential audio signal. Fortunately, there are plenty of places online to get the technical specifications (IEC 61938:2018 being the official document). Basically the max current is 10 mA, and you only need to connect two 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24. If you would like to learn more about phantom, I can recommend you read this page: https://sound-au.com/articles/p-48.htm
+But first, we need to talk about what the hell phantom power is 👻. Phantom power is the standard way of powering devices through the same XLR cable that carries the audio signal. Instead of running a separate power line, 48V is applied equally to pins 2 and 3 of a balanced input relative to pin 1. Because the voltage is identical on both pins, it doesn't disturb the differential audio signal. Fortunately, there are plenty of places online to get the technical specifications (IEC 61938:2018 being the official document). Basically the max current is 10 mA, and you only need to connect two 6.81k resistors between each signal pin and the power source. On the schematic, this is the job of R22 and R24. If you would like to learn more about phantom, I can recommend this page: https://sound-au.com/articles/p-48.htm
 
 Note that the specification says 6.81k, but I instead used 6.8k. This is because, apparently, at the time, getting 6.8k resistors with a low tolerance was complicated 🤷. By choosing 6.81k, the specifications ensured the proper tolerance. However, these days it isn't really a problem anymore.
 
@@ -256,11 +256,11 @@ The mainboard changed a lot; in fact, it changed twice while I started the writi
 ![Main board render](images/HyperNet-2-MainBoard.png "Main board render")
 
 As you might be able to see, the SFP and Ultranet ports on the board are basically unchanged. 
-They don't really need to change; they worked perfectly on the prototype. Only the Ultranet TX and RX ports are swapped to facilitate routing and that's it!
+They don't really need to change as they worked perfectly on the prototype. Only the Ultranet TX and RX ports are swapped to facilitate routing and that's it!
 
 This also applies to the FPGA, which is still the same Tang 9k that I used last time. It works very well and is easy to use, so why change it 🙂!
 
-The whole right side of the board is dedicated to power management (3.3v digital, 5v analog, and 48v phantom) ⚡. Each input has its own switch to turn on phantom instead of a global one.
+The whole right side of the board is dedicated to power management (3.3v digital, 5v analog, and 48v phantom) ⚡. Each input has its own switch to turn on phantom power instead of a global one.
 
 The most significant change is the IDC ports to connect the ADCs and DACs boards. I chose IDC connectors mainly because they are very resilient, cheap, and widely used. That said, if I were to redesign everything, I would probably use FFC connectors to reduce the size 📏. These ports provide:
   - An I2C port 💬 (Unused and unpopulated for my boards)
@@ -277,8 +277,7 @@ The last thing that needs a special mention is the DIX9211. This chip is basical
 
 I'm configuring it with a Raspberry Pi Pico and a few DIP-switches. I also stole the pass-through idea from the P16-M and used the chip as a "biphase router" of sorts. I can configure what input port is used as the input for the DIR, and I can also choose which input port is used for the biphase output. This offers a lot of flexibility; for example, I could use my project to receive from the Ultranet port and at the same time send audio over the fiber link!
 
-This chip was really a no-brainer compared to the PLL1707 that I used before; it adds easier decoding, biphase routing, clocks, etc., for a few cents more. Massive boost in flexibility for the system!
-
+This chip was really a no-brainer compared to the PLL1707 that I used before, since for a few cents more, it adds easier decoding, biphase routing, clocks, etc. Massive boost in flexibility for the system!
 
 ## HDL redesign
 ### Receiver
@@ -618,17 +617,13 @@ The signal is flat overall except in the lower frequencies. I suspect this is du
 
 The software also gave me an estimate for latency, which is **0.56 ms** (it's the equivalent of sitting ~20 cm from a speaker), which is again more than good enough for my application!
 
+## Demo
+
 Ok enough text, let's see the demo 📹:
 
-## Demo
-### Hypernet to Hypernet
-{{< todo >}} Video {{< /todo >}}
+{{< og "https://www.youtube.com/watch?v=-GW9iot34w0" >}}
 
-### Hypernet to Ultranet
-{{< todo >}} Video {{< /todo >}}
-
-### Ultranet to Hypernet
-{{< todo >}} Video {{< /todo >}}
+*I didn't show every possible configuration but you can probably figure out how it would work. The last demo (with two boards) was filmed before the 2nd shelf arrived, hence why it doesn't look the same*😅!
 
 ## Conclusion / What's next
 
