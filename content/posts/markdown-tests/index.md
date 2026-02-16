@@ -315,6 +315,3 @@ images/4.webp
 images/5.webp
 images/cover.jpg
 {{< /gallery >}}
-
-
-![Cool photo](https://photos.thestaticturtle.fr/upload/2023/06/25/20230625002134-ce45132b.png "Very cool photo")
