@@ -1,9 +1,9 @@
 ---
 slug: compiling-youtrack-mobile-internal-ca
 title: "Using an internal CA with the YouTrack mobile app"
-draft: true
+draft: false
 featured: false
-date: 2026-02-11T23:00:00.000Z
+date: 2026-02-16T12:00:00.000Z
 image: "images/cover.png"
 tags:
   - open-source
