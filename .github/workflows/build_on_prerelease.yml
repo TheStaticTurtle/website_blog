@@ -14,23 +14,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
-      # Get java for plantuml
-      - name: "[Prepare] Downlaoding java"
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'adopt'
-          java-version: '17'
       # Get hugo
       - name: "[Prepare] Setup Hugo"
         uses: peaceiris/actions-hugo@v2
         with:
-          hugo-version: '0.115.2'
+          hugo-version: '0.168.0'
           extended: true
-      # Get PlantUML
-      - name: "[Prepare] Download PlantUML"
-        working-directory: /
-        run: wget https://github.com/plantuml/plantuml/releases/download/v1.2023.10/plantuml-1.2023.10.jar -O /tmp/plantuml.jar
-
+          
       - name: "[Build] Build the site"
         run: |
           chmod +x ./build.sh

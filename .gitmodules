@@ -1,3 +1,6 @@
 [submodule "themes/turtle"]
 	path = themes/turtle
 	url = https://github.com/TheStaticTurtle/website_theme
+[submodule "themes/turtlejs"]
+	path = themes/turtlejs
+	url = https://github.com/TheStaticTurtle/website_themejs.git

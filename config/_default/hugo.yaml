@@ -2,32 +2,27 @@
 baseURL: 'https://blog.thestaticturtle.fr/'
 refLinksNotFoundURL: "/404.html"
 
-log: true
-verbose: true
-timeout: 300000 # Large timeout for the SSR of embeds
+timeout: 15000 # Per page render, so it also bounds the opengraph fetches of a page
 
 enableGitInfo: true
 
-defaultExtension: "html"
-defaultLayout: "post"
-
 ##########################  Blog  #############################
 
-theme: turtle
+theme: turtlejs
 title: TheStaticTurtle
-copyright: Copyright 2023 - TheStaticTurtle
+copyright: Copyright 2026 - TheStaticTurtle
 
 defaultContentLanguage: en
 languages:
   en:
-    languageCode: en-GB
-    languageDirection: ltr
-    languageName: English
+    locale: en-GB
+    direction: ltr
+    label: English
     weight: 1
   fr:
-    languageCode: fr-FR
-    languageDirection: ltr
-    languageName: Français
+    locale: fr-FR
+    direction: ltr
+    label: Français
     weight: 2
 
 timeZone: "Europe/Paris"
@@ -42,7 +37,7 @@ markup:
     guessSyntax: false
     lineNos: true
     lineNumbersInTable: false
-    noClasses: true
+    noClasses: false
     style: manni
     tabWidth: 4
   tableOfContents:
@@ -65,7 +60,7 @@ markup:
         title: true
       autoHeadingID: true
       autoHeadingIDType: github
-      wrapStandAloneImageWithinParagraph: true
+      wrapStandAloneImageWithinParagraph: false
     renderer:
       hardWraps: false
       xhtml: false
@@ -111,27 +106,18 @@ taxonomies:
 permalinks:
   posts: '/:slug/'
 
-section:
-  - "RSS"
-  - "SITEMAP"
-
 outputs:
   home:
     - "HTML"
     - "RSS"
-    - "SITEMAP"
   page:
     - "HTML"
   section:
     - "HTML"
-    - "SITEMAP"
   taxonomy:
     - "HTML"
-    - "SITEMAP"
   term:
     - "HTML"
-
-rssLimit: -1 
 
 enableRobotsTXT: true
 

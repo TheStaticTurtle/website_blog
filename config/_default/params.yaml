@@ -1,5 +1,8 @@
 description: Let's hack
 
+# fediverse:creator meta tag (author shown on Mastodon link previews)
+fediverse: "@TheStaticTurtle@chaos.social"
+
 header:
   links:
     - url: https://thestaticturtle.fr/
@@ -10,8 +13,6 @@ header:
 urls:
   portfolio: https://thestaticturtle.fr/
   blog: https://blog.thestaticturtle.fr/
-
-plantuml_picoserver: http://127.0.0.1:8080/render
 
 ssr:
   user_agent: "Mastodon/4.3.0-rc.1+glitch (http.rb/5.2.0, like Discordbot; +https://60228.dev/)" 
@@ -34,3 +35,26 @@ pagination:
 umami:
   url: https://analytics.thestaticturtle.fr/umami.js
   id: 545cbb62-ad58-44da-93d6-be15b01ac131
+
+# {{< og >}} cards: download each linked page at build time to read its title, description and image.
+# Every request is logged as "[opengraph] ..." (see themes/turtlejs/layouts/partials/embeds/generic/tags.html).
+opengraph:
+  enabled: true
+
+# giscus (https://giscus.app). Set enabled: false to hide the comment section.
+comments:
+  enabled: true
+  repo: TheStaticTurtle/blog-comments
+  repoId: R_kgDOGgNzFw
+  category: General
+  categoryId: DIC_kwDOGgNzF84CANT2
+  mapping: pathname
+  lang: en
+
+# Newsletter, powered by listmonk: a form at the end of posts and, with popup: true, a panel while reading.
+# list is the UUID of the public list (listmonk: Lists > the list > UUID).
+newsletter:
+  enabled: true
+  popup: true
+  url: https://notify.thestaticturtle.fr
+  list: 0ae96e59-3a94-4c66-a9ed-9d19b61aaacb
