@@ -40,6 +40,9 @@ umami:
 # Every request is logged as "[opengraph] ..." (see themes/turtlejs/layouts/partials/embeds/generic/tags.html).
 opengraph:
   enabled: true
+  # Card thumbnails hosted on these domains are not downloaded (the card has no image): too slow at build time.
+  skipImages:
+    - opengraph.githubassets.com
 
 # giscus (https://giscus.app). Set enabled: false to hide the comment section.
 comments:
