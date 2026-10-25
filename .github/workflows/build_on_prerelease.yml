@@ -20,6 +20,17 @@ jobs:
         with:
           hugo-version: '0.168.0'
           extended: true
+
+      # Hugo compiles the theme styles with Dart Sass, which must be on the PATH (same install as the Hugo docs)
+      - name: "[Prepare] Setup Dart Sass"
+        env:
+          DART_SASS_VERSION: 1.105.1
+        run: |
+          curl -sfL --output-dir "${{ runner.temp }}" -O "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz"
+          mkdir -p "${HOME}/.local"
+          tar -C "${HOME}/.local" -xf "${{ runner.temp }}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz"
+          echo "${HOME}/.local/dart-sass" >> "${GITHUB_PATH}"
+        shell: bash
           
       - name: "[Build] Build the site"
         run: |
