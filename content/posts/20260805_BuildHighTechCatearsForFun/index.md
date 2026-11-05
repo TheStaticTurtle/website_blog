@@ -38,7 +38,7 @@ This is from their website:
 > The camp got some more people interested in the topic of printing cat ears and two of them pre-printed a lot before the 37c3. But even 1500 cat ears were sold-out in the first two days.
 
 They also had a small stock of LED strips for the ["Light-Up"](https://wiki.hamburg.ccc.de/club:c3cat:start) version.
-This version uses a 4mm 5V COB single-color LED strip, which made them even more awesome.
+This version uses a 3mm 5V COB single-color LED strip, which made them even more awesome.
 Unfortunately, I was too late to the party, and when I asked how I could get my hands on a pair with LEDs, I was told they didn't have enough stock remaining.
 
 I told myself right then and there that I would have a light-up version ready for [38C3](https://events.ccc.de/congress/2024/infos/startpage.html).
@@ -99,12 +99,12 @@ This raised two concerns:
 
 But I ordered a test board anyway to see if it was even possible to do 🤔.
 
-{{< gallery >}}
+{{< gallery autoplay=true >}}
 images/v4-rev1/v4.1.jpg "Simple PCB placed on a dummy 3D print"
-images/v4-rev1/v4.1-3.mp4.gif "First WLED integration"
+images/v4-rev1/v4.1-3.webm "First WLED integration"
 {{< /gallery >}}
 
-It also proved that they are bright enough that there isn't really a need to push the brightness past 20%; otherwise, you get blinded pretty fast. You can see in the GIF that the first panel in the GIF above is overloading the camera!
+It also proved that they are bright enough that there isn't really a need to push the brightness past 20%; otherwise, you get blinded pretty fast. You can see in the video above that the first test panel is overloading the camera!
 
 But it also showed a viable concept. 🎉
 
@@ -117,16 +117,16 @@ I selected the following ICs:
  - The [HUSB238](https://en.hynetek.com/2421.html), a `highly integrated USB Power Delivery (PD) controller as sink role for up to 100W power rating`. It was also the easiest/fastest IC I could get my hands on.
  - The [TPS65320D](https://www.ti.com/product/TPS65320D-Q1), a `3.6V to 36V, 3.2A buck converter with auto-sourced 280mA LDO regulator`
 
-The cool thing about the TPS65320D is that it integrates the DC-DC and the LDO in a single chip, which is pretty nice considering the space constraints. It was supposed to provide around 3 amps on the main output and 200mA for the 3.3V with over-current and over-temperature protection.
+The cool thing about the TPS65320D is that it integrates the DC-DC and the LDO in a single chip, which is pretty nice considering the space constraints. It was supposed to provide around ~3 amps on the main output and ~200mA for the 3.3V with over-current and over-temperature protection.
 
 For the controller I used an ESP32-S3 running WLED. I chose it mainly because it integrates USB directly, which removes the need for a secondary USB-UART chip. When I started this project, support for the S3 variant was just coming out, but it worked just fine in the end.
 
 The first board used a 2-layer PCB to reduce cost; in hindsight, this was a rookie mistake that cost me a revision. 🤦
 
-{{< gallery >}}
+{{< gallery autoplay=true >}}
 images/v4-rev2-0/v4.2-2.jpg "PCB Front side"
 images/v4-rev2-0/v4.2-3.jpg "Assembled prototype"
-images/v4-rev2-0/PXL_20250811_194241836.mp4.gif "Powerup over USB-PD"
+images/v4-rev2-0/PXL_20250811_194241836.webm "Powerup over USB-PD"
 {{< /gallery >}}
 
 It worked, but being a 2-layer board, it came with a few issues:
@@ -148,18 +148,19 @@ As you can see, even with 4 layers, it's very crowded; routing was better but st
 
 But it powered up just fine:
 
-{{< gallery >}}
+{{< gallery autoplay=true >}}
 images/v4-rev2-1/PXL_20251020_085448310.RAW-01.COVER.jpg "LED bring-up using external controller"
 images/v4-rev2-1/PXL_20251020_200442918.RAW-01.COVER.jpg "Front side"
 images/v4-rev2-1/PXL_20251020_200450275.RAW-01.COVER.jpg "Back side"
-images/v4-rev2-1/PXL_20251021_224410519.mp4.gif "Power consumption tests"
-images/v4-rev2-1/PXL_20251022_224244033.mp4.gif "Power consumption tests"
+images/v4-rev2-1/PXL_20251021_224410519.webm "Power consumption tests"
+images/v4-rev2-1/PXL_20251022_224244033.webm "Power consumption tests"
 {{< /gallery >}}
 
 Unfortunately, as I already semi-expected, things didn't improve a lot:
   - It still overheated.
   - WiFi still sucked, but this time it was my fault for not using the proper values for the tuning network.
   - I broke the mic while soldering by pouring flux down its hole, so no sound-reactive animations.
+  - It sometimes locked up due to what I presume was the ESP32 rebooting
 
 **And that's when I figured out that I over-built the damn thing.**<br>
 Realistically, the USB-PD and a buck converter on each panel caused more issues than they solved:
@@ -186,7 +187,7 @@ images/39c3/PXL_20251230_131923306.RAW-01.COVER.jpg "V3 + V4 in front"
 
 ### Revision 3 - Taking things out
 
-Lessons learned: for revision 3 I removed things:
+Lessons learned: for revision 3 I removed and replaced things:
   - The USB-PD and DC-DC are gone. It's now powered directly by 5V, and the 3.3V needed for the ESP32 is derived by a [MPM3805](https://www.monolithicpower.com/en/mpm3805.html) (a small step-down converter with integrated inductor).
   - WiFi works wonders. I replaced the ceramic antenna with an [IRD-C013](https://www.digikey.com/en/products/detail/joymax-electronics/IRD-C013SMDB/26742123) and the proper tuning CLC network for the 4-layer PCB.
   - The boards now live in an SLS-printed PA12 frame, held in place with CA glue and silicone. Silicone doesn't stick well to FR4 and solder mask, which is precisely what I want: it's held in place, but the board can still be removed and repaired.
@@ -201,7 +202,7 @@ That said, it's undocumented and might be different from chip to chip 🤔, so u
 
 Because the LED matrix is designed to be horizontal when the ears are worn, the PCB itself is angled by a few degrees. This also means that in order to keep continuity between the left ear and the right ear, I needed to make two PCBs. It's actually pretty convenient because the second PCB can act as a "cable organizer/router" so that there isn't a mess of cables.
 
-The 3D-printed band also got a redesign to remove unwanted features from the previous version and to add hidden cable passes inside the band.
+The 3D-printed band also got a small redesign to remove unwanted features meant to hold previous version and to add hidden cable passes inside the band.
 
 You can also see that for the first time the LEDs are somewhat aligned to a grid; previously, I just crammed in as many as possible. This version has slightly fewer LEDs, which reduces cost, power, and heat, but it's just as bright and makes routing easier. I also scripted part of the layout in KiCad 9's Python console (mirroring footprints, routing the LED data chain) instead of clicking through each pad by hand.
 
@@ -260,6 +261,8 @@ For the back PCBs, instead of making another two variants, I simply reused the f
 
 This actually fits pretty well because with JLCPCB the minimum order count for an assembled PCB is two, and since I only assembled the LED side, it was a nice way to save some money 💸.
 
+They connect using a small 3 wire cable (5V, ground and data) to spare pads put here for this purpose.
+
 {{< gallery >}}
 images/v4-rev3/PXL_20260729_210228934.jpg "Back left PCB"
 images/v4-rev3/PXL_20260729_213350364.jpg "Back right PCB during testing"
@@ -274,36 +277,88 @@ I unfortunately needed to glue the cables because there's just not enough space 
 
 > All revisions up to this point have the outer band glued, and I haven't seen it fail at all.
 
-{{< gallery >}}
+{{< gallery autoplay=true >}}
 images/v4-rev3/rn_image_picker_lib_temp_23b7062a-bf4b-4440-88d7-25f1a826265c.webp "Super-glued lower right cable pass"
 images/v4-rev3/PXL_20260729_221434427.jpg "Super-glued upper right cable pass"
 images/v4-rev3/PXL_20260729_224533732.jpg "Start of gluing the strip"
 images/v4-rev3/PXL_20260729_224539491.jpg "Middle of the strip gluing"
 images/v4-rev3/PXL_20260729_224918814.jpg "End of the strip gluing"
-images/v4-rev3/PXL_20260729_231015590.mp4.gif "Assembled test"
+images/v4-rev3/PXL_20260729_231015590.webm "Assembled test"
 {{< /gallery >}}
 
-After this was done, I could see the first fully assembled test 🥳. The GIF above doesn't show it, but this is running an audio-reactive animation, and it's reacting to me snapping my fingers.
+After this was done, I could see the first fully assembled test 🥳. The video above doesn't show it, but this is running an audio-reactive animation, and it's reacting to me snapping my fingers.
 
 I can't tell you how happy I was after the fully assembled test; it looks spectacular 🤩!
 
 #### Silicone
 
-The last step is silicone. Since I removed the mounting holes in [revision 2.1](#revision-21), I need some way of holding the panels in place. The front panels are held with a tiny bit of superglue, just enough to hold them but not enough to be permanent.
+The last step is silicone. Since in this revision I removed the mounting holes I added in [revision 2.1](#revision-21), I need some way of holding the panels in place. The front panels are held with a tiny bit of superglue, just enough to hold them but not enough to be permanent.
 
-The idea with silicone is to hold the PCBs in place while staying compliant enough when the frame flexes, and to protect the stupidly small and fragile XL1010s. And so I chose a platinum-cure silicone with a Shore 12A hardness, in other words, a very flexible silicone mainly used for casting, and a TODO pigment.
+The idea with silicone is to hold the PCBs in place while staying compliant enough when the frame flexes, and to protect the stupidly small and fragile XL1010s. And so I chose a platinum-cure silicone with a Shore 12A hardness, in other words, a very flexible silicone mainly used for casting, and a white pigment.
 
-{{< todo >}} Missing text & pictures {{< /todo >}}
+To put it lightly, this was a pain in the ass, it seeped everywhere there was space to. Fortunately my plan worked and the silicone was more than enough to hold the panels in place while still being able to remove it completely.
+
+{{< gallery columns=2 >}}
+images/v4-rev3/silicone/first_test.jpg "First test pour to see what it might look like"
+images/v4-rev3/silicone/front_test_pour.jpg "Second test pour with LEDs turned on to test diffusion (note the resistor to plug the mic hole)"
+images/v4-rev3/silicone/final_pour_side_a_inside.jpg "Securing the wires in the A side during the final pour"
+images/v4-rev3/silicone/final_pour_side_b_inside.jpg "Securing the wires in the B side during the final pour"
+{{< /gallery >}}
+
+While doing my test pours I got better and better and for the final one I nailed the process:
+ - Hold the band in tension (as if someone was wearing it, you can see on the photo above I was using a SDI matrix 😅)
+ - Mix a small batch
+    - Wait until it starts to cure (about 30 min for me)
+    - Coat the edges of the PCB
+    - Put it in the slot
+    - Add extra where there is a hole bigger than 0.5mm
+    - Wipe excess
+    - Wait for it to cure
+ - Mix a bigger batch using more pigment than you think you need 🎨
+    - Don't forget to plug the mic hole
+    - Flood the LEDs
+    - Wait until it starts to cure
+    - Touch up with some very small drips where the LEDs look too close to the surface
+ - Wait 3h
+ - Flip it carefully
+ - Pop out the panels on the other side cutting away any excess silicone that still seeped
+ - Pour some more silicone inside to secure the connections
+ - Repeat step 1 and 2
+
+And after waiting (sleeping 😴) a further 8h for the silicone to be completely cured I was greeted by this:
+
+{{< gallery columns=2 >}}
+images/v4-rev3/result/off1.jpg "Result"
+images/v4-rev3/result/off2.jpg "Result"
+{{< /gallery >}}
+
+The silicone I used is very flexible and I poured very flat so it's a bit sticky if I lay them down on a flat surface otherwise it's just perfect!
+It looks awesome!
 
 ## Conclusion
 
-{{< todo >}} Final HQ photos/video {{< /todo >}}
+Here are some videos of the final result, it's running WLED so of course all their animations work:
+
+{{< gallery autoplay=true >}}
+images/v4-rev3/result/audioreactive.webm "Audioreactive demo (enable sound)"
+images/v4-rev3/result/matrix.webm "Matrix style animation"
+images/v4-rev3/result/text.webm "Scrolling text"
+images/v4-rev3/result/fire2.webm "Fire 🔥🔥"
+images/v4-rev3/result/waterfall.webm "Waterfall 💧"
+{{< /gallery >}}
+
 
 It has been a stupidly long road that started three years ago at 37C3, spanned three revisions, and took more than a year and a half of working on it on and off. As always, I learned a few things along the way, mostly the hard way 😅.
 
-I'm happy with where they are: they're bright, they're small, and people keep asking about them. There's still room for improvement (real matrix instead of addressable, real screen, battery), but for the first time they do what I imagined when I started 😎.
+I'm happy with where they are: they're bright, they're small, and people keep asking about them. There's still room for improvement:
+ - It still gets very hot, less than before but the inside is still hotter than I would like
+ - If I win the lottery one day I'll make a version with more layers and a real matrix instead of addressable leds
+ - Maybe one day battery tech will be good enough that I could put one in the other ear and it would last a few hours
+
+But for the first time since starting they do, feel and look like what I imagined 😎🥹.
 
 Everything (schematics, PCB, 3D models, and firmware) is available on GitHub below, in case you want to build your own or improve on mine. If you do, I'd love to see it!
+(Make sure your boot preset is set to low brightness otherwise you might bootloop your power supply)
 
 I will, of course, be wearing them at [40C3](https://events.ccc.de/congress/2026/infos/startpage.html); see you there!
 
